@@ -8,6 +8,10 @@ The benchmark uses Flask, Express, and TypeScript at exact commits recorded in `
 
 Results produced with `--allow-draft` are provisional. They validate the execution pipeline and expose measurements; they do not establish definitive retrieval quality or superiority of any method. Human confirmation must come from an actual reviewer, never from an agent changing the flag to satisfy a test.
 
+## Confirmed results
+
+The completed comparison contains 45 held-out queries, 180 query/strategy rows, and three warm retrieval repeats per row. [Results and indexing analysis](results/confirmed/README.md) explain the measurements and their limits; raw JSON, CSV, and the generated report are retained alongside it. Vector-only leads Recall@20 in this run, while hybrid leads Recall@5 and MRR@10. AST-aware does not lead.
+
 ## Reproduction
 
 Clone the three URLs from `specification.py` into `.repomap/benchmarks/flask`, `.repomap/benchmarks/express`, and `.repomap/benchmarks/typescript`. Check out their recorded commits with detached HEADs. The TypeScript commit corresponds to v5.7.3 and intentionally uses the TypeScript compiler implementation.
@@ -23,6 +27,6 @@ The preparation script preserves existing reviewed annotations, creates full and
 
 Tests, examples, documentation, generated library declarations, and tooling directories are excluded through explicit patterns recorded with each runtime repository entry. Standard index exclusions also apply, including the 1 MB file cap. Consequently, the TypeScript checker is excluded: it exceeds that cap. This is a documented corpus boundary, not a whole-repository quality claim.
 
-Reports include JSON, CSV, and Markdown, with commit/model identities, shared chunks, configuration, full/incremental index measurements, sampled peak process RSS, total local data disk usage, quality metrics, and first-query versus repeated warm latency. RSS includes the host process and loaded model; disk usage includes caches and imported repositories. First-query latency is not process-cold latency. LLM generation is excluded.
+Reports include JSON, CSV, and Markdown, with commit/model identities, shared chunks, configuration, full/incremental index measurements, sampled peak process RSS, data directory disk usage, quality metrics, and first-query versus repeated warm latency. RSS includes the host process and loaded model; disk usage includes storage and caches inside the selected data directory, excluding local source checkouts outside it. First-query latency is not process-cold latency. LLM generation is excluded.
 
 Results also record the implementation Git commit and whether the working tree was dirty, the parser and statement-aware chunking versions, and binding time. The default CPU embedding and Chroma worker count is four. Full indexes use a fresh data directory for cold parsing/embedding caches; the model is already downloaded. The unchanged incremental run reuses those caches and rebuilds snapshot-specific storage.

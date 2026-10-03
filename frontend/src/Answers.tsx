@@ -16,7 +16,10 @@ export function Answers({repository, snapshot, onOpen}: {repository: string; sna
       setAnswer({status: 'generating', answer: null, message: 'Code evidence is available while the optional answer is generated.', results: evidence.results, citations: [], llm_latency_ms: 0});
       setAnswer(await post('/answers', {repository_id: repository, snapshot_id: snapshot, query: question}));
     }
-    catch (error) {setError(String(error));} finally {setBusy(false);}
+    catch (error) {
+      setError(String(error));
+      setAnswer(previous => previous ? {...previous, status: 'unavailable', message: 'The answer request failed. Retrieved code remains available.'} : null);
+    } finally {setBusy(false);}
   }
   return <section><h2>Ask about this repository</h2><form onSubmit={ask}><label>Question<input required value={question} onChange={event => setQuestion(event.target.value)} placeholder="How does a login request reach authentication?"/></label><button disabled={busy || !snapshot}>{busy ? 'Retrieving evidence...' : 'Ask with code evidence'}</button></form>
     {error && <p className="error" role="alert">{error}</p>}

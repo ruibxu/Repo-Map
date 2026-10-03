@@ -85,7 +85,7 @@ function App() {
       {hits.map(hit => <article key={hit.id}><button className="text-button" onClick={() => setSelected(hit)}>{hit.symbol || hit.path}</button><p>{hit.path}:{hit.start_line}-{hit.end_line} · {hit.score.toFixed(5)} · {hit.origins.join(', ')}</p><pre>{hit.excerpt.slice(0, 500)}</pre></article>)}
     </section>
     {snapshot && <Answers key={snapshot} repository={repository} snapshot={snapshot} onOpen={setSelected}/>}
-    {selected && <Explorer repository={repository} snapshot={snapshot} hit={selected}/>}
+    {selected && <Explorer key={selected.id} repository={repository} snapshot={snapshot} hit={selected}/>}
     <Reports/>
   </main>;
 }
