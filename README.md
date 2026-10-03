@@ -6,7 +6,7 @@ A local, single-user repository intelligence and retrieval research engine.
 
 The first implementation provides a FastAPI repository catalog backed by SQLite, public GitHub imports pinned to commit SHAs, local Git root registration, and a React repository import screen. Duplicate imports return the existing catalog entry. Git operations disable interactive credential prompts; public GitHub clones disable Git credential helpers.
 
-Tree-sitter extraction, conservative lexical/import binding, immutable source capture, parsing and embedding caches, serial indexing tasks, Chroma vectors, per-snapshot FTS5 indexes, and all four retrieval strategies are implemented. Indexes are published only after structural, text, and vector indexing succeed. Structural query APIs, graph browsing, question answering, and the full benchmark are subsequent milestones. An imported repository is not an indexed snapshot. Local registration records the current HEAD without changing the working tree. GitHub cloning runs synchronously with a 120-second Git operation timeout. Failed clone directories may remain under the ignored data directory, but failed imports are not added to the catalog.
+Tree-sitter extraction, conservative lexical/import binding, immutable source capture, parsing and embedding caches, serial indexing tasks, Chroma vectors, per-snapshot FTS5 indexes, and all four retrieval strategies are implemented. Indexes are published only after structural, text, and vector indexing succeed. Snapshot-bound source, definition/reference, and graph APIs are available, together with React index polling, search filters, source browsing, and one-hop graph expansion. Optional answers and the full benchmark are the remaining milestone. An imported repository is not an indexed snapshot. Local registration records the current HEAD without changing the working tree. GitHub cloning runs synchronously with a 120-second Git operation timeout. Failed clone directories may remain under the ignored data directory, but failed imports are not added to the catalog.
 
 ## Local development on Windows
 
@@ -79,3 +79,4 @@ $env:REPOMAP_TEST_LOCAL_MODEL = '1'
 4. Optional cited LLM answers and a manually confirmed benchmark for Flask, Express, and TypeScript.
 
 See [AGENTS.md](AGENTS.md) for architecture constraints and the evaluation protocol.
+

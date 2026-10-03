@@ -8,7 +8,7 @@ import tree_sitter_python
 import tree_sitter_javascript
 import tree_sitter_typescript
 
-VERSION = "tree-sitter-0.25.2-extraction-v1"
+VERSION = "tree-sitter-0.25.2-extraction-v3"
 LANGUAGES = {".py": "python", ".js": "javascript", ".jsx": "javascript",
              ".ts": "typescript", ".tsx": "tsx"}
 DEFINITIONS = {"function_definition": "function", "class_definition": "class",
@@ -88,6 +88,12 @@ def parse(path: str, source: str) -> dict:
             value = node.child_by_field_name("value")
             if value and value.type in {"arrow_function", "function_expression"}:
                 kind, name_node = "function", node.child_by_field_name("name")
+        assigned_name = None
+        if node.type in {"function_expression", "arrow_function"} and node.parent and node.parent.type == "assignment_expression":
+            target = node.parent.child_by_field_name("left")
+            name_node = target.child_by_field_name("property") or target if target else None
+            kind = "function"
+            assigned_name = text(target)
         next_scope = scope
         if kind and name_node:
             name = text(name_node)
@@ -109,11 +115,19 @@ def parse(path: str, source: str) -> dict:
                     if target and target.type == "identifier":
                         locals_.append(text(target))
             result["symbols"].append({"id": symbol_id, "name": name,
-                "qualified_name": f"{parent['qualified_name']}.{name}" if parent else name,
+                "qualified_name": assigned_name or (f"{parent['qualified_name']}.{name}" if parent else name),
                 "kind": kind, "scope": scope, "locals": sorted(set(locals_)),
                 "signature": raw[node.start_byte:body.start_byte].decode("utf-8").strip() if body else text(node).splitlines()[0],
                 "exported": language == "python" and not name.startswith("_") or node.parent is not None and node.parent.type == "export_statement",
                 **position(node)})
+            symbol = result["symbols"][-1]
+            ancestor = node.parent
+            if ancestor and ancestor.type == "lexical_declaration":
+                ancestor = ancestor.parent
+            symbol["export_names"] = [name] if language == "python" and not name.startswith("_") else []
+            if scope is None and ancestor and ancestor.type == "export_statement":
+                symbol["export_names"] = ["default"] if text(ancestor).startswith("export default") else [name]
+            symbol["exported"] = bool(symbol["export_names"])
             exclude(name_node)
             exclude(parameters)
             next_scope = symbol_id
@@ -129,4 +143,16 @@ def parse(path: str, source: str) -> dict:
             visit(child, next_scope, kind or parent_kind)
 
     visit(root)
+    if language != "python":
+        for statement in root.named_children:
+            if statement.type != "export_statement" or statement.child_by_field_name("source"):
+                continue
+            for item in walk(statement):
+                if item.type == "export_specifier":
+                    name = text(item.child_by_field_name("name"))
+                    alias = text(item.child_by_field_name("alias")) or name
+                    for symbol in result["symbols"]:
+                        if symbol["scope"] is None and symbol["name"] == name:
+                            symbol["export_names"].append(alias)
+                            symbol["exported"] = True
     return result

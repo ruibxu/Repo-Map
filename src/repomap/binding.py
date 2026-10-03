@@ -13,6 +13,8 @@ def resolve_module(path, module, language, files, tsconfig=None):
             prefix = posixpath.dirname(prefix)
         base = posixpath.join(prefix, suffix)
         candidates = [base + ".py", posixpath.join(base, "__init__.py")]
+        if not dots:
+            candidates += ["src/" + candidate for candidate in candidates]
     else:
         bases = []
         if module.startswith("."):
@@ -44,7 +46,7 @@ def bind(files: dict, tsconfig=None) -> list[dict]:
             return []
         seen.add((path, name))
         parsed = files[path]["parsed"]
-        found = [s["id"] for s in parsed["symbols"] if s["scope"] is None and s["exported"] and (s["name"] == name or name == "default" and "export default" in files[path]["content"])]
+        found = [s["id"] for s in parsed["symbols"] if s["scope"] is None and name in s.get("export_names", [])]
         for imp in parsed["imports"]:
             if imp["reexport"] and (imp["alias"] == name or imp["name"] is None):
                 target = resolve_module(path, imp["module"], parsed["language"], files, tsconfig)

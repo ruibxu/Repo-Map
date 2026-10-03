@@ -28,6 +28,8 @@ class LocalEncoder:
     def load(self):
         with self.lock:
             if self._model is None:
+                import torch
+                torch.set_num_threads(int(os.environ.get("REPOMAP_CPU_THREADS", "4")))
                 from sentence_transformers import SentenceTransformer
                 self._model = SentenceTransformer(self.name, revision=self.revision, device="cpu")
                 self._model.max_seq_length = 512

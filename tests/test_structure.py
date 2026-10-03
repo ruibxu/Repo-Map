@@ -104,3 +104,18 @@ def test_ambiguous_definitions_remain_candidates():
     ref = files["a.py"]["parsed"]["references"][-1]
     assert ref["status"] == "candidate"
     assert len(ref["candidates"]) == 2
+
+
+def test_default_and_local_export_aliases_do_not_bind_other_symbols():
+    files = corpus({"a.ts": "export default function first(){} export function second(){} const run=()=>1; export {run as action};",
+                    "b.ts": "import defaultFn, { action } from './a'; defaultFn(); action();"})
+    bind(files)
+    references = {r["name"]: r for r in files["b.ts"]["parsed"]["references"]}
+    symbols = {s["id"]: s["name"] for s in files["a.ts"]["parsed"]["symbols"]}
+    assert symbols[references["defaultFn"]["target"]] == "first"
+    assert symbols[references["action"]["target"]] == "run"
+
+
+def test_assigned_javascript_functions_have_qualified_names():
+    parsed = parse("app.js", "app.handle = function handle(req) { return req; };")
+    assert parsed["symbols"][0]["qualified_name"] == "app.handle"
