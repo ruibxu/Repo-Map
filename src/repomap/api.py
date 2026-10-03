@@ -1,6 +1,7 @@
 """FastAPI application factory for local repository management."""
 
 import os
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Literal
 
@@ -8,6 +9,9 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 from repomap.repositories import ImportErrorDetail, RepositoryCatalog
+from repomap.indexing import IndexStore, Indexer, TaskManager
+from repomap.vectors import VectorPipeline
+from repomap.retrieval import SearchEngine
 
 
 class RepositoryImport(BaseModel):
@@ -15,13 +19,44 @@ class RepositoryImport(BaseModel):
     source: str = Field(min_length=1, max_length=4096)
 
 
-def create_app(data_dir: Path | None = None) -> FastAPI:
+class IndexRequest(BaseModel):
+    exclusions: list[str] = Field(default_factory=list, max_length=100)
+
+
+class SearchRequest(BaseModel):
+    repository_id: str
+    snapshot_id: str
+    query: str = Field(min_length=1, max_length=4096)
+    strategy: Literal["vector-only", "bm25", "hybrid", "ast-aware"] = "ast-aware"
+    k: int = Field(default=10, ge=1, le=100)
+    language: str | None = None
+    path_prefix: str | None = None
+
+
+def create_app(data_dir: Path | None = None, encoder=None) -> FastAPI:
     catalog = RepositoryCatalog(data_dir or Path(os.environ.get("REPOMAP_DATA_DIR", ".repomap")))
-    application = FastAPI(title="repoMap", version="0.1.0")
+    store = IndexStore(catalog)
+    vectors = VectorPipeline(store, encoder)
+    engine = SearchEngine(store, vectors)
+    tasks = TaskManager(Indexer(store, vectors))
+
+    @asynccontextmanager
+    async def lifespan(app):
+        yield
+        tasks.close()
+
+    application = FastAPI(title="repoMap", version="0.1.0", lifespan=lifespan)
+    application.state.store = store
+    application.state.engine = engine
+
+    @application.exception_handler(ValueError)
+    async def invalid_request(request, error):
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=400, content={"detail": str(error)})
 
     @application.get("/api/v1/health")
     def health():
-        return {"status": "ok", "stage": "repository-import"}
+        return {"status": "ok", "stage": "retrieval"}
 
     @application.get("/api/v1/repositories")
     def repositories():
@@ -33,5 +68,21 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
             return catalog.import_repository(request.kind, request.source)
         except ImportErrorDetail as error:
             raise HTTPException(status_code=400, detail=str(error)) from error
+
+    @application.post("/api/v1/repositories/{repository_id}/index", status_code=202)
+    def index(repository_id: str, request: IndexRequest):
+        return tasks.submit(repository_id, request.exclusions)
+
+    @application.get("/api/v1/tasks/{task_id}")
+    def task(task_id: str):
+        return tasks.get(task_id)
+
+    @application.get("/api/v1/repositories/{repository_id}/snapshots")
+    def snapshots(repository_id: str):
+        return store.snapshots(repository_id)
+
+    @application.post("/api/v1/search")
+    def search(request: SearchRequest):
+        return engine.search(**request.model_dump())
 
     return application

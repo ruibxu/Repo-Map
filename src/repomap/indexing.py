@@ -123,6 +123,31 @@ class Indexer:
         self.vector_pipeline = vector_pipeline
 
     def run(self, repository_id, exclusions=(), progress=lambda value: None):
+        import psutil
+        process = psutil.Process()
+        peak = [process.memory_info().rss]
+        stop = threading.Event()
+
+        def sample():
+            while not stop.wait(0.05):
+                peak[0] = max(peak[0], process.memory_info().rss)
+
+        monitor = threading.Thread(target=sample, daemon=True)
+        monitor.start()
+        try:
+            snapshot = self._run(repository_id, exclusions, progress)
+            with self.store.catalog.connect() as db:
+                row = db.execute("SELECT metrics FROM snapshots WHERE id=?", (snapshot,)).fetchone()
+                metrics = json.loads(row["metrics"])
+                metrics["peak_rss_bytes"] = max(peak[0], process.memory_info().rss)
+                metrics["data_disk_bytes"] = sum(p.stat().st_size for p in self.store.catalog.data_dir.rglob("*") if p.is_file())
+                db.execute("UPDATE snapshots SET metrics=? WHERE id=?", (json.dumps(metrics), snapshot))
+            return snapshot
+        finally:
+            stop.set()
+            monitor.join()
+
+    def _run(self, repository_id, exclusions=(), progress=lambda value: None):
         started = time.perf_counter()
         with self.store.catalog.connect() as db:
             repository = db.execute("SELECT * FROM repositories WHERE id=?", (repository_id,)).fetchone()
