@@ -1,5 +1,6 @@
 import json
 import re
+import subprocess
 
 import pytest
 
@@ -61,6 +62,22 @@ def test_incremental_vectors_retention_and_immutability(searchable):
         store.require(repository["id"], first)
     assert "login" in store.source(second, "auth.py")["content"]
     assert "logout" in engine.search(repository["id"], third, "logout", "bm25")["results"][0]["excerpt"]
+
+
+def test_added_tracked_file_is_bound_and_visible_only_in_new_snapshot(searchable):
+    root, repository, store, indexer, engine, first = searchable
+    (root / "new.py").write_text("from auth import login\ndef register():\n    return login()\n", encoding="utf-8")
+    subprocess.run(["git", "-C", str(root), "add", "new.py"], check=True, capture_output=True)
+    second = indexer.run(repository["id"])
+    assert not engine.search(repository["id"], first, "register", "bm25")["results"]
+    assert engine.search(repository["id"], second, "register", "bm25")["results"][0]["path"] == "new.py"
+    with pytest.raises(ValueError, match="File not found"):
+        store.source(first, "new.py")
+    reference = next(ref for ref in store.records("refs", second) if ref["path"] == "new.py" and ref["role"] == "call")
+    assert reference["status"] == "resolved"
+    snapshots = store.snapshots(repository["id"])
+    assert snapshots[0]["metrics"]["parse_cache_hits"] == 1
+    assert snapshots[0]["metrics"]["content_manifest_hash"] != snapshots[1]["metrics"]["content_manifest_hash"]
 
 
 def test_failed_vector_build_preserves_ready_snapshot(searchable):
