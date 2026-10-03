@@ -77,7 +77,7 @@ Long structured chunks prefer Tree-sitter statement boundaries. A single stateme
 
 Configure `REPOMAP_LLM_BASE_URL` (including its API version path), `REPOMAP_LLM_MODEL`, and optional `REPOMAP_LLM_API_KEY` in the backend shell. The service calls the configured base URL plus `/chat/completions`. `.env.example` documents configuration names; the application does not automatically load dotenv files.
 
-`POST /api/v1/answers` retrieves AST-aware evidence before optional generation. It caps evidence at 20 chunks and approximately 6,000 tokens including reserved prompt space, validates returned chunk citations, and reports LLM latency separately. With no LLM configuration, search results remain available. Cloud behavior is tested with mocked HTTP transports; a live cloud provider is not configured in this workspace.
+`POST /api/v1/answers` retrieves AST-aware evidence before optional generation. It caps evidence at 20 chunks and approximately 6,000 tokens including reserved prompt space, validates returned chunk citations, and reports LLM latency separately. With no LLM configuration, search results remain available. Tests cover mocked HTTP transports and a real local HTTP service without an API key; a live cloud provider is not configured in this workspace.
 
 The React interface shows retrieved evidence before requesting optional generation, with evidence links and evaluation tables. `GET /api/v1/reports` reads valid results files under the local data directory's `reports` folder. Run evaluation outputs there to show them in the UI.
 

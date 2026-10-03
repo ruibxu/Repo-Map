@@ -38,7 +38,8 @@ class AnswerService:
             return {**retrieved, "status": "insufficient-evidence", "answer": "No evidence fits the context budget.", "citations": [], "llm_latency_ms": 0}
         started = time.perf_counter()
         try:
-            headers = {"Authorization": "Bearer " + os.environ.get("REPOMAP_LLM_API_KEY", "")}
+            api_key = os.environ.get("REPOMAP_LLM_API_KEY", "")
+            headers = {"Authorization": "Bearer " + api_key} if api_key else {}
             with httpx.Client(transport=self.transport, timeout=60) as client:
                 response = client.post(base.rstrip("/") + "/chat/completions", headers=headers,
                     json={"model": model, "temperature": 0, "messages": [
