@@ -4,7 +4,7 @@
 
 These guidelines apply throughout the repository. Follow the confirmed project constraints below. Obtain explicit user authorization before changing the technology stack, product scope, or evaluation protocol.
 
-This document describes the target architecture and planned functionality; it does not claim that those features already exist. The project is currently being initialized. Progress reports, README content, and change descriptions must distinguish implemented, planned, and unverified behavior using actual code and verification results.
+This document defines the target architecture and requirements; it is not a feature completion report. Consult README.md and actual verification results for implementation status. Progress reports, README content, and change descriptions must distinguish implemented, planned, and unverified behavior using actual code and verification results.
 
 ## Language Requirements
 

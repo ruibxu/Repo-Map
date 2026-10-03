@@ -19,7 +19,32 @@ def metrics(results, relevant):
             "mrr@10": next((1 / rank for rank, id_ in enumerate(ids[:10], 1) if id_ in relevant), 0)}
 
 
+def validate_dataset(dataset):
+    repositories = dataset.get("repositories", [])
+    queries = dataset.get("queries", [])
+    names = [r["name"] for r in repositories]
+    ids = [q["id"] for q in queries]
+    if len(names) != len(set(names)) or len(ids) != len(set(ids)):
+        raise ValueError("Repository names and query IDs must be unique.")
+    for query in queries:
+        if query["repository"] not in names or query["split"] not in {"dev", "test"}:
+            raise ValueError("Query repository or split is invalid.")
+        if not query["query"].strip() or not query["relevant"]:
+            raise ValueError("Queries require text and relevant source ranges.")
+        for source in query["relevant"]:
+            if source["start_line"] < 1 or source["end_line"] < source["start_line"]:
+                raise ValueError("Invalid annotation line range.")
+    if dataset.get("protocol") == "repomap-60-v1":
+        if set(names) != {"flask", "express", "typescript"} or len(queries) != 60:
+            raise ValueError("The fixed benchmark requires three repositories and 60 queries.")
+        for name in names:
+            selected = [q for q in queries if q["repository"] == name]
+            if len(selected) != 20 or sum(q["split"] == "dev" for q in selected) != 5:
+                raise ValueError("Each benchmark repository requires 5 development and 15 test queries.")
+
+
 def evaluate(engine, dataset, output: Path, split="test", repeats=3, allow_draft=False):
+    validate_dataset(dataset)
     if repeats < 1 or split not in {"dev", "test"}:
         raise ValueError("Choose dev or test and at least one repeat.")
     if not allow_draft and not all(q.get("human_confirmed") for q in dataset["queries"]):
@@ -53,11 +78,19 @@ def evaluate(engine, dataset, output: Path, split="test", repeats=3, allow_draft
         latencies = sorted(t for r in selected for t in r["latencies_ms"])
         summary[strategy] = {key: statistics.mean(r[key] for r in selected) for key in ("recall@5", "recall@10", "recall@20", "mrr@10")}
         summary[strategy].update({"p50_ms": statistics.median(latencies), "p95_ms": latencies[max(0, __import__('math').ceil(len(latencies) * .95) - 1)]})
+    import os
+    import psutil
+    import hashlib
     report = {"status": "provisional" if allow_draft else "human-confirmed", "split": split,
         "repeats": repeats, "conditions": "One first-query measurement per strategy/query followed by repeated warm runs; not process-cold latency.",
-        "hardware": {"platform": platform.platform(), "processor": platform.processor(), "python": platform.python_version()},
+        "hardware": {"platform": platform.platform(), "processor": platform.processor(), "python": platform.python_version(),
+                     "physical_cpu_count": psutil.cpu_count(logical=False), "logical_cpu_count": psutil.cpu_count(),
+                     "total_memory_bytes": psutil.virtual_memory().total, "embedding_cpu_threads": os.environ.get("REPOMAP_CPU_THREADS", "4")},
         "dependencies": {d.metadata["Name"]: d.version for d in importlib.metadata.distributions()},
         "summary": summary, "indexing": indexing, "rows": rows, "repositories": dataset["repositories"]}
+    report["annotations_sha256"] = hashlib.sha256(json.dumps(dataset["queries"], sort_keys=True).encode()).hexdigest()
+    report["retrieval_configuration"] = {"candidate_limit": 100, "rrf_constant": 60, "expansion_seeds": 20,
+        "neighbors_per_seed": 5, "expansion_multiplier": .5, "reranker": None, "query_rewriting": False}
     output.mkdir(parents=True, exist_ok=True)
     (output / "results.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
     flat = [{**{k: v for k, v in row.items() if k != "latencies_ms"}, "latencies_ms": json.dumps(row["latencies_ms"])} for row in rows]

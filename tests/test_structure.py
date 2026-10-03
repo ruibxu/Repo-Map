@@ -119,3 +119,26 @@ def test_default_and_local_export_aliases_do_not_bind_other_symbols():
 def test_assigned_javascript_functions_have_qualified_names():
     parsed = parse("app.js", "app.handle = function handle(req) { return req; };")
     assert parsed["symbols"][0]["qualified_name"] == "app.handle"
+
+
+def test_explicit_imported_module_members_and_commonjs_edges():
+    files = corpus({"auth.py": "def login():\n    return True\n", "main.py": "import auth\nauth.login()\n",
+                    "auth.js": "function login(){return true;} exports.login=login;",
+                    "main.js": "const auth=require('./auth'); auth.login();"})
+    edges = bind(files)
+    for path in ("main.py", "main.js"):
+        reference = next(r for r in files[path]["parsed"]["references"] if r["name"] == "login")
+        assert reference["status"] == "resolved"
+    assert any(e["kind"] == "import" and e["source_path"] == "main.js" for e in edges)
+
+
+def test_anonymous_parameter_and_reassignment_are_not_false_bindings():
+    files = corpus({"a.py": "def login():\n    return True\ncallback = lambda login: login()\nlogin = unknown\nlogin()\n"})
+    bind(files)
+    refs = [r for r in files["a.py"]["parsed"]["references"] if r["name"] == "login"]
+    assert all(r["status"] != "resolved" for r in refs)
+
+
+def test_namespace_is_a_scope():
+    parsed = parse("parser.ts", "namespace Parser { export function parse() { return true; } }")
+    assert any(s["qualified_name"] == "Parser.parse" for s in parsed["symbols"])

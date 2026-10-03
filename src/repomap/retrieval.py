@@ -2,6 +2,7 @@
 
 import json
 import time
+from collections import defaultdict
 
 from repomap.vectors import fts_table, terms
 
@@ -71,18 +72,27 @@ class SearchEngine:
             seeds = sorted(scores, key=lambda id_: (-scores[id_], id_))[:20]
             seed_scores = {id_: scores[id_] for id_ in seeds}
             edges = self.store.records("edges", snapshot_id)
+            by_path, by_symbol, imported_paths, related_symbols = (defaultdict(set) for _ in range(4))
+            for id_, chunk in chunks.items():
+                by_path[chunk["path"]].add(id_)
+                if chunk["symbol_id"]:
+                    by_symbol[chunk["symbol_id"]].add(id_)
+            for edge in edges:
+                if edge["status"] != "resolved":
+                    continue
+                if edge["kind"] == "import":
+                    imported_paths[edge["source_path"]].add(edge["target_path"])
+                else:
+                    related_symbols[edge["source_symbol"]].add(edge["target_symbol"])
+                    related_symbols[edge["target_symbol"]].add(edge["source_symbol"])
             for seed in seeds:
                 chunk = chunks[seed]
                 neighbors = set()
-                for edge in edges:
-                    if edge["status"] != "resolved":
-                        continue
-                    if edge["kind"] == "import":
-                        if edge["source_path"] == chunk["path"]:
-                            neighbors.update(id_ for id_, c in chunks.items() if c["path"] == edge["target_path"])
-                    elif chunk["symbol_id"] and chunk["symbol_id"] in {edge["source_symbol"], edge["target_symbol"]}:
-                        other = edge["target_symbol"] if chunk["symbol_id"] == edge["source_symbol"] else edge["source_symbol"]
-                        neighbors.update(id_ for id_, c in chunks.items() if c["symbol_id"] == other)
+                for path in imported_paths[chunk["path"]]:
+                    neighbors.update(by_path[path])
+                if chunk["symbol_id"]:
+                    for symbol in related_symbols[chunk["symbol_id"]]:
+                        neighbors.update(by_symbol[symbol])
                 for id_ in sorted(neighbors - {seed})[:5]:
                     add(id_, seed_scores[seed] * 0.5, "dependency-expansion", maximum=True)
         ranked = sorted(scores, key=lambda id_: (-scores[id_], id_))[:k]

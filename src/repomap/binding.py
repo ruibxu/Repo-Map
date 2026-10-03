@@ -70,21 +70,29 @@ def bind(files: dict, tsconfig=None) -> list[dict]:
         for ref in parsed["references"]:
             candidates = []
             scope = ref["scope"]
-            blocked = ref["member"]
+            blocked = False
+            lookup = ref.get("member_base") if ref["member"] else ref["name"]
             while not blocked:
-                candidates = [s["id"] for s in parsed["symbols"] if s["scope"] == scope and s["name"] == ref["name"]]
+                if any(b["name"] == lookup and b["scope"] == scope for b in parsed.get("barriers", [])):
+                    break
+                if scope is not None and lookup in symbols[scope][1]["locals"]:
+                    break
+                candidates = [s["id"] for s in parsed["symbols"] if s["scope"] == scope and s["name"] == lookup] if not ref["member"] else []
                 if candidates:
                     break
-                imports = [imp for imp in parsed["imports"] if imp["scope"] == scope and imp["alias"] == ref["name"] and not imp["reexport"]]
+                imports = [imp for imp in parsed["imports"] if imp["scope"] == scope and (imp["alias"] == lookup or ref["member"] and imp["module"] == lookup and imp["name"] is None) and not imp["reexport"]]
                 if imports:
                     for imp in imports:
-                        if imp["target_path"] and imp["name"]:
-                            candidates += exported(imp["target_path"], imp["name"])
+                        if imp["target_path"]:
+                            if ref["member"] and imp["name"] in {None, "*"}:
+                                candidates += exported(imp["target_path"], ref["name"])
+                            elif not ref["member"] and imp["name"] not in {None, "*"}:
+                                candidates += exported(imp["target_path"], imp["name"])
                     break
                 if scope is None:
                     break
                 symbol = symbols[scope][1]
-                if ref["name"] in symbol["locals"]:
+                if lookup in symbol["locals"]:
                     blocked = True
                     break
                 scope = symbol["scope"]

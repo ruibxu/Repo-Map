@@ -8,13 +8,13 @@ import tree_sitter_python
 import tree_sitter_javascript
 import tree_sitter_typescript
 
-VERSION = "tree-sitter-0.25.2-extraction-v3"
+VERSION = "tree-sitter-0.25.2-extraction-v5"
 LANGUAGES = {".py": "python", ".js": "javascript", ".jsx": "javascript",
              ".ts": "typescript", ".tsx": "tsx"}
 DEFINITIONS = {"function_definition": "function", "class_definition": "class",
                "function_declaration": "function", "class_declaration": "class",
                "method_definition": "method", "interface_declaration": "interface",
-               "type_alias_declaration": "type"}
+               "type_alias_declaration": "type", "internal_module": "namespace"}
 
 
 def identity(*parts) -> str:
@@ -29,7 +29,7 @@ def walk(node):
 
 def parse(path: str, source: str) -> dict:
     language = LANGUAGES.get(PurePosixPath(path).suffix, "text")
-    result = {"language": language, "symbols": [], "references": [], "imports": [], "diagnostics": []}
+    result = {"language": language, "symbols": [], "references": [], "imports": [], "diagnostics": [], "barriers": []}
     if language == "text":
         return result
     capsule = {"python": tree_sitter_python.language,
@@ -86,17 +86,36 @@ def parse(path: str, source: str) -> dict:
         name_node = node.child_by_field_name("name") if kind else None
         if node.type == "variable_declarator":
             value = node.child_by_field_name("value")
+            if value and value.type == "call_expression" and text(value.child_by_field_name("function")) == "require":
+                arguments = value.child_by_field_name("arguments")
+                argument = arguments.named_children[0] if arguments and arguments.named_children else None
+                if argument and argument.type == "string":
+                    target = node.child_by_field_name("name")
+                    result["imports"].append({"module": text(argument).strip("\"'"), "name": "*",
+                        "alias": text(target) if target and target.type == "identifier" else None,
+                        "scope": scope, "reexport": False, **position(node)})
+                    exclude(node)
             if value and value.type in {"arrow_function", "function_expression"}:
                 kind, name_node = "function", node.child_by_field_name("name")
         assigned_name = None
+        anonymous = False
+        if node.type in {"function_expression", "arrow_function", "lambda"} and (not node.parent or node.parent.type != "variable_declarator"):
+            kind, name_node = "function", node.child_by_field_name("name")
+            anonymous = name_node is None
         if node.type in {"function_expression", "arrow_function"} and node.parent and node.parent.type == "assignment_expression":
             target = node.parent.child_by_field_name("left")
             name_node = target.child_by_field_name("property") or target if target else None
             kind = "function"
             assigned_name = text(target)
+            anonymous = False
+        if node.type in {"assignment", "augmented_assignment", "variable_declarator"}:
+            target = node.child_by_field_name("left") or node.child_by_field_name("name")
+            value = node.child_by_field_name("right") or node.child_by_field_name("value")
+            if target and target.type == "identifier" and not kind and not (value and value.type == "call_expression" and text(value.child_by_field_name("function")) == "require"):
+                result["barriers"].append({"name": text(target), "scope": scope})
         next_scope = scope
-        if kind and name_node:
-            name = text(name_node)
+        if kind and (name_node or anonymous):
+            name = text(name_node) if name_node else f"<anonymous@{node.start_point.row + 1}:{node.start_byte}>"
             if language == "python" and kind == "function" and parent_kind == "class":
                 kind = "method"
             symbol_id = identity(path, node.start_byte, kind, name)
@@ -104,7 +123,7 @@ def parse(path: str, source: str) -> dict:
             body = node.child_by_field_name("body")
             if node.type == "variable_declarator":
                 body = node.child_by_field_name("value")
-            parameters = node.child_by_field_name("parameters")
+            parameters = node.child_by_field_name("parameters") or node.child_by_field_name("parameter")
             if node.type == "variable_declarator":
                 parameters = body.child_by_field_name("parameters") or body.child_by_field_name("parameter")
             locals_ = [text(n) for n in walk(parameters) if n.type == "identifier"] if parameters else []
@@ -134,11 +153,13 @@ def parse(path: str, source: str) -> dict:
         if node.type in {"identifier", "property_identifier", "type_identifier"} and node.id not in excluded:
             parent = node.parent
             member = parent is not None and parent.type in {"attribute", "member_expression"}
+            member_property = member and (parent.child_by_field_name("attribute") == node or parent.child_by_field_name("property") == node)
             function = parent.child_by_field_name("function") if parent and parent.type in {"call", "call_expression"} else None
             member_call = member and parent.parent and parent.parent.type in {"call", "call_expression"}
             result["references"].append({"name": text(node), "scope": scope,
                 "role": "call" if function == node or member_call else "reference",
-                "member": bool(member), "status": "unresolved", "target": None, "candidates": [], **position(node)})
+                "member": bool(member_property), "member_base": text(parent.child_by_field_name("object")) if member_property else None,
+                "status": "unresolved", "target": None, "candidates": [], **position(node)})
         for child in node.named_children:
             visit(child, next_scope, kind or parent_kind)
 
@@ -155,4 +176,18 @@ def parse(path: str, source: str) -> dict:
                         if symbol["scope"] is None and symbol["name"] == name:
                             symbol["export_names"].append(alias)
                             symbol["exported"] = True
+        # CommonJS exports of named functions are explicit bindings.
+        for statement in walk(root):
+            if statement.type != "assignment_expression":
+                continue
+            target = text(statement.child_by_field_name("left"))
+            value = statement.child_by_field_name("right")
+            if not value:
+                continue
+            exported_name = "default" if target == "module.exports" else target.split(".")[-1] if target.startswith("exports.") or target.startswith("module.exports.") else None
+            if exported_name:
+                for symbol in result["symbols"]:
+                    if symbol["scope"] is None and (value.type == "identifier" and symbol["name"] == text(value) or symbol["start_byte"] == value.start_byte):
+                        symbol["export_names"].append(exported_name)
+                        symbol["exported"] = True
     return result

@@ -122,7 +122,7 @@ class Indexer:
         self.store = store
         self.vector_pipeline = vector_pipeline
 
-    def run(self, repository_id, exclusions=(), progress=lambda value: None):
+    def run(self, repository_id, exclusions=(), progress=lambda value: None, reserved_snapshot=None):
         import psutil
         process = psutil.Process()
         peak = [process.memory_info().rss]
@@ -135,7 +135,7 @@ class Indexer:
         monitor = threading.Thread(target=sample, daemon=True)
         monitor.start()
         try:
-            snapshot = self._run(repository_id, exclusions, progress)
+            snapshot = self._run(repository_id, exclusions, progress, reserved_snapshot)
             with self.store.catalog.connect() as db:
                 row = db.execute("SELECT metrics FROM snapshots WHERE id=?", (snapshot,)).fetchone()
                 metrics = json.loads(row["metrics"])
@@ -147,7 +147,7 @@ class Indexer:
             stop.set()
             monitor.join()
 
-    def _run(self, repository_id, exclusions=(), progress=lambda value: None):
+    def _run(self, repository_id, exclusions=(), progress=lambda value: None, reserved_snapshot=None):
         started = time.perf_counter()
         with self.store.catalog.connect() as db:
             repository = db.execute("SELECT * FROM repositories WHERE id=?", (repository_id,)).fetchone()
@@ -178,9 +178,11 @@ class Indexer:
             except (ValueError, AttributeError):
                 skipped.append({"path": "tsconfig.json", "reason": "unsupported-config-syntax"})
         edges = bind(files, tsconfig)
-        snapshot_id = uuid.uuid4().hex
+        snapshot_id = reserved_snapshot or uuid.uuid4().hex
         metrics = {"files": len(files), "bytes": sum(len(f["content"].encode()) for f in files.values()),
-                   "parse_cache_hits": hits, "parse_seconds": parse_seconds, "skipped": skipped}
+                   "parse_cache_hits": hits, "parse_seconds": parse_seconds, "skipped": skipped,
+                   "parser": VERSION, "exclusions": list(exclusions),
+                   "commit_sha": commit, "content_manifest_hash": hashlib.sha256(json.dumps({p: f['hash'] for p, f in sorted(files.items())}, sort_keys=True).encode()).hexdigest()}
         with self.store.catalog.connect() as db:
             db.execute("INSERT INTO snapshots VALUES (?,?,?,?,?,?)", (snapshot_id, repository_id, commit, "structured", time.time(), json.dumps(metrics)))
             for path, file in files.items():
@@ -223,14 +225,14 @@ class TaskManager:
         self.lock = threading.Lock()
         with indexer.store.catalog.connect() as db:
             db.execute("UPDATE tasks SET status='failed', error='Interrupted by application restart' WHERE status IN ('queued','running')")
-            db.execute("UPDATE snapshots SET status='failed' WHERE status='structured'")
+            db.execute("UPDATE snapshots SET status='failed' WHERE status='structured' AND id IN (SELECT snapshot_id FROM tasks WHERE status='failed')")
 
     def submit(self, repository_id, exclusions=()):
         task_id = uuid.uuid4().hex
         with self.indexer.store.catalog.connect() as db:
             if not db.execute("SELECT id FROM repositories WHERE id=?", (repository_id,)).fetchone():
                 raise ValueError("Repository not found.")
-            db.execute("INSERT INTO tasks VALUES (?,?,NULL,'queued',0,NULL,?)", (task_id, repository_id, time.time()))
+            db.execute("INSERT INTO tasks VALUES (?,?,?,'queued',0,NULL,?)", (task_id, repository_id, task_id, time.time()))
         self.pool.submit(self._run, task_id, repository_id, exclusions)
         return self.get(task_id)
 
@@ -241,7 +243,7 @@ class TaskManager:
         with self.indexer.store.catalog.connect() as db:
             db.execute("UPDATE tasks SET status='running' WHERE id=?", (task_id,))
         try:
-            snapshot = self.indexer.run(repository_id, exclusions, update)
+            snapshot = self.indexer.run(repository_id, exclusions, update, reserved_snapshot=task_id)
             with self.indexer.store.catalog.connect() as db:
                 db.execute("UPDATE tasks SET status='completed', snapshot_id=?, progress=1 WHERE id=?", (snapshot, task_id))
         except Exception as error:

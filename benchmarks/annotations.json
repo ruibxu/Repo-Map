@@ -1,0 +1,1223 @@
+{
+  "repositories": [
+    {
+      "name": "flask",
+      "url": "https://github.com/pallets/flask.git",
+      "commit_sha": "d73fa1cdcbd8b1465c151db8924ba58b1dd14e35"
+    },
+    {
+      "name": "express",
+      "url": "https://github.com/expressjs/express.git",
+      "commit_sha": "7ef98448f8b38099ab1ded55e458538ad47a51e7"
+    },
+    {
+      "name": "typescript",
+      "url": "https://github.com/microsoft/TypeScript.git",
+      "commit_sha": "a5e123d9e0690fcea92878ea8a0a382922009fc9"
+    }
+  ],
+  "queries": [
+    {
+      "id": "flask-01",
+      "repository": "flask",
+      "query": "Where does Flask dispatch a matched request to its view function?",
+      "category": "functionality",
+      "split": "dev",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "src/flask/app.py",
+          "start_line": 969,
+          "end_line": 993
+        }
+      ],
+      "proposal_symbol": "Flask.dispatch_request",
+      "review": {
+        "source": "Explicit user confirmation of the remaining 46 labels",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "flask-02",
+      "repository": "flask",
+      "query": "Where is configuration loaded from prefixed environment variables?",
+      "category": "functionality",
+      "split": "dev",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "src/flask/config.py",
+          "start_line": 126,
+          "end_line": 183
+        }
+      ],
+      "proposal_symbol": "Config.from_prefixed_env",
+      "review": {
+        "source": "User-provided source range correction",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "flask-03",
+      "repository": "flask",
+      "query": "Find render_template and its template environment dependency.",
+      "category": "dependency",
+      "split": "dev",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "src/flask/templating.py",
+          "start_line": 136,
+          "end_line": 148
+        }
+      ],
+      "proposal_symbol": "render_template",
+      "review": {
+        "source": "Explicit user confirmation of the remaining 46 labels",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "flask-04",
+      "repository": "flask",
+      "query": "Where are signed cookie sessions opened?",
+      "category": "functionality",
+      "split": "dev",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "src/flask/sessions.py",
+          "start_line": 323,
+          "end_line": 335
+        }
+      ],
+      "proposal_symbol": "SecureCookieSessionInterface.open_session",
+      "review": {
+        "source": "Explicit user confirmation of the remaining 46 labels",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "flask-05",
+      "repository": "flask",
+      "query": "Where is a blueprint registered with an application?",
+      "category": "symbol",
+      "split": "dev",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "src/flask/sansio/app.py",
+          "start_line": 570,
+          "end_line": 595
+        }
+      ],
+      "proposal_symbol": "App.register_blueprint",
+      "review": {
+        "source": "Explicit user confirmation of the remaining 46 labels",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "flask-06",
+      "repository": "flask",
+      "query": "Where does the WSGI entry point create a context and dispatch requests?",
+      "category": "call",
+      "split": "test",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "src/flask/app.py",
+          "start_line": 1569,
+          "end_line": 1618
+        }
+      ],
+      "proposal_symbol": "Flask.wsgi_app",
+      "review": {
+        "source": "User-provided source range correction",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "flask-07",
+      "repository": "flask",
+      "query": "Where is the complete request dispatch lifecycle coordinated?",
+      "category": "call",
+      "split": "test",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "src/flask/app.py",
+          "start_line": 995,
+          "end_line": 1022
+        }
+      ],
+      "proposal_symbol": "Flask.full_dispatch_request",
+      "review": {
+        "source": "Explicit user confirmation of the remaining 46 labels",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "flask-08",
+      "repository": "flask",
+      "query": "Where are exceptions from user view functions handled?",
+      "category": "functionality",
+      "split": "test",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "src/flask/app.py",
+          "start_line": 868,
+          "end_line": 898
+        }
+      ],
+      "proposal_symbol": "Flask.handle_user_exception",
+      "review": {
+        "source": "Explicit user confirmation of the remaining 46 labels",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "flask-09",
+      "repository": "flask",
+      "query": "Where does Flask turn an unhandled exception into a server error response?",
+      "category": "functionality",
+      "split": "test",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "src/flask/app.py",
+          "start_line": 900,
+          "end_line": 952
+        }
+      ],
+      "proposal_symbol": "Flask.handle_exception",
+      "review": {
+        "source": "User-provided source range correction",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "flask-10",
+      "repository": "flask",
+      "query": "Where are view return values converted into response objects?",
+      "category": "functionality",
+      "split": "test",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "src/flask/app.py",
+          "start_line": 1227,
+          "end_line": 1367
+        }
+      ],
+      "proposal_symbol": "Flask.make_response",
+      "review": {
+        "source": "User-provided source range correction",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "flask-11",
+      "repository": "flask",
+      "query": "Where are after-request callbacks applied to the response?",
+      "category": "call",
+      "split": "test",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "src/flask/app.py",
+          "start_line": 1397,
+          "end_line": 1421
+        }
+      ],
+      "proposal_symbol": "Flask.process_response",
+      "review": {
+        "source": "Explicit user confirmation of the remaining 46 labels",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "flask-12",
+      "repository": "flask",
+      "query": "Where are asynchronous view functions adapted for synchronous execution?",
+      "category": "dependency",
+      "split": "test",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "src/flask/app.py",
+          "start_line": 1068,
+          "end_line": 1080
+        }
+      ],
+      "proposal_symbol": "Flask.ensure_sync",
+      "review": {
+        "source": "Explicit user confirmation of the remaining 46 labels",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "flask-13",
+      "repository": "flask",
+      "query": "Find the application method that builds URLs for endpoints.",
+      "category": "symbol",
+      "split": "test",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "src/flask/app.py",
+          "start_line": 1105,
+          "end_line": 1135
+        }
+      ],
+      "proposal_symbol": "Flask.url_for",
+      "review": {
+        "source": "Explicit user confirmation of the remaining 46 labels",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "flask-14",
+      "repository": "flask",
+      "query": "Where are flash messages added to the session?",
+      "category": "functionality",
+      "split": "test",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "src/flask/helpers.py",
+          "start_line": 326,
+          "end_line": 356
+        }
+      ],
+      "proposal_symbol": "flash",
+      "review": {
+        "source": "Explicit user confirmation of the remaining 46 labels",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "flask-15",
+      "repository": "flask",
+      "query": "Where are flashed messages retrieved and filtered by category?",
+      "category": "functionality",
+      "split": "test",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "src/flask/helpers.py",
+          "start_line": 360,
+          "end_line": 390
+        }
+      ],
+      "proposal_symbol": "get_flashed_messages",
+      "review": {
+        "source": "Explicit user confirmation of the remaining 46 labels",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "flask-16",
+      "repository": "flask",
+      "query": "Where does the file sending helper delegate to Werkzeug?",
+      "category": "dependency",
+      "split": "test",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "src/flask/helpers.py",
+          "start_line": 417,
+          "end_line": 529
+        }
+      ],
+      "proposal_symbol": "send_file",
+      "review": {
+        "source": "User-provided source range correction",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "flask-17",
+      "repository": "flask",
+      "query": "Where are files served from a directory with safe path handling?",
+      "category": "functionality",
+      "split": "test",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "src/flask/helpers.py",
+          "start_line": 543,
+          "end_line": 583
+        }
+      ],
+      "proposal_symbol": "send_from_directory",
+      "review": {
+        "source": "User-provided source range correction",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "flask-18",
+      "repository": "flask",
+      "query": "Find the default JSON provider serialization method.",
+      "category": "symbol",
+      "split": "test",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "src/flask/json/provider.py",
+          "start_line": 166,
+          "end_line": 179
+        }
+      ],
+      "proposal_symbol": "DefaultJSONProvider.dumps",
+      "review": {
+        "source": "Explicit user confirmation of the remaining 46 labels",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "flask-19",
+      "repository": "flask",
+      "query": "Where does MethodView dispatch requests by their HTTP method?",
+      "category": "call",
+      "split": "test",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "src/flask/views.py",
+          "start_line": 182,
+          "end_line": 191
+        }
+      ],
+      "proposal_symbol": "MethodView.dispatch_request",
+      "review": {
+        "source": "Explicit user confirmation of the remaining 46 labels",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "flask-20",
+      "repository": "flask",
+      "query": "Where does the test client open a request and manage its context?",
+      "category": "functionality",
+      "split": "test",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "src/flask/testing.py",
+          "start_line": 204,
+          "end_line": 251
+        }
+      ],
+      "proposal_symbol": "FlaskClient.open",
+      "review": {
+        "source": "User-provided source range correction",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "express-01",
+      "repository": "express",
+      "query": "Where is an Express application created and its prototypes connected?",
+      "category": "dependency",
+      "split": "dev",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "lib/express.js",
+          "start_line": 36,
+          "end_line": 56
+        }
+      ],
+      "proposal_symbol": "createApplication",
+      "review": {
+        "source": "Explicit user confirmation of the remaining 46 labels",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "express-02",
+      "repository": "express",
+      "query": "Find the application request handling entry point.",
+      "category": "symbol",
+      "split": "dev",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "lib/application.js",
+          "start_line": 152,
+          "end_line": 178
+        }
+      ],
+      "proposal_symbol": "app.handle",
+      "review": {
+        "source": "Explicit user confirmation of the remaining 46 labels",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "express-03",
+      "repository": "express",
+      "query": "Where does Express send a response body?",
+      "category": "functionality",
+      "split": "dev",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "lib/response.js",
+          "start_line": 126,
+          "end_line": 220
+        }
+      ],
+      "proposal_symbol": "res.send",
+      "review": {
+        "source": "User-provided source range correction",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "express-04",
+      "repository": "express",
+      "query": "Where is HTTP Accept content negotiation performed?",
+      "category": "dependency",
+      "split": "dev",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "lib/request.js",
+          "start_line": 127,
+          "end_line": 130
+        }
+      ],
+      "proposal_symbol": "req.accepts",
+      "review": {
+        "source": "Explicit user confirmation of the remaining 46 labels",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "express-05",
+      "repository": "express",
+      "query": "Where is a view initialized with its template engine?",
+      "category": "functionality",
+      "split": "dev",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "lib/view.js",
+          "start_line": 52,
+          "end_line": 82
+        }
+      ],
+      "proposal_symbol": "View",
+      "review": {
+        "source": "Explicit user confirmation of the remaining 46 labels",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "express-06",
+      "repository": "express",
+      "query": "Where is middleware mounted on an application?",
+      "category": "functionality",
+      "split": "test",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "lib/application.js",
+          "start_line": 190,
+          "end_line": 244
+        }
+      ],
+      "proposal_symbol": "app.use",
+      "review": {
+        "source": "User-provided source range correction",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "express-07",
+      "repository": "express",
+      "query": "Where does application route creation delegate to the router?",
+      "category": "call",
+      "split": "test",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "lib/application.js",
+          "start_line": 256,
+          "end_line": 258
+        }
+      ],
+      "proposal_symbol": "app.route",
+      "review": {
+        "source": "Explicit user confirmation of the remaining 46 labels",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "express-08",
+      "repository": "express",
+      "query": "Where are route parameter callbacks registered?",
+      "category": "call",
+      "split": "test",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "lib/application.js",
+          "start_line": 322,
+          "end_line": 334
+        }
+      ],
+      "proposal_symbol": "app.param",
+      "review": {
+        "source": "Explicit user confirmation of the remaining 46 labels",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "express-09",
+      "repository": "express",
+      "query": "Where does an Express app create and listen on an HTTP server?",
+      "category": "dependency",
+      "split": "test",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "lib/application.js",
+          "start_line": 598,
+          "end_line": 606
+        }
+      ],
+      "proposal_symbol": "app.listen",
+      "review": {
+        "source": "Explicit user confirmation of the remaining 46 labels",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "express-10",
+      "repository": "express",
+      "query": "Where are application settings stored and configured?",
+      "category": "functionality",
+      "split": "test",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "lib/application.js",
+          "start_line": 351,
+          "end_line": 381
+        }
+      ],
+      "proposal_symbol": "app.set",
+      "review": {
+        "source": "Explicit user confirmation of the remaining 46 labels",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "express-11",
+      "repository": "express",
+      "query": "Where does the application render a view using its cache and engine?",
+      "category": "call",
+      "split": "test",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "lib/application.js",
+          "start_line": 522,
+          "end_line": 568
+        }
+      ],
+      "proposal_symbol": "app.render",
+      "review": {
+        "source": "User-provided source range correction",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "express-12",
+      "repository": "express",
+      "query": "Where are JSON responses serialized and sent?",
+      "category": "call",
+      "split": "test",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "lib/response.js",
+          "start_line": 236,
+          "end_line": 250
+        }
+      ],
+      "proposal_symbol": "res.json",
+      "review": {
+        "source": "Explicit user confirmation of the remaining 46 labels",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "express-13",
+      "repository": "express",
+      "query": "Where are JSONP callback responses constructed?",
+      "category": "functionality",
+      "split": "test",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "lib/response.js",
+          "start_line": 264,
+          "end_line": 308
+        }
+      ],
+      "proposal_symbol": "res.jsonp",
+      "review": {
+        "source": "User-provided source range correction",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "express-14",
+      "repository": "express",
+      "query": "Find the response method that transfers a file.",
+      "category": "symbol",
+      "split": "test",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "lib/response.js",
+          "start_line": 375,
+          "end_line": 419
+        }
+      ],
+      "proposal_symbol": "res.sendFile",
+      "review": {
+        "source": "User-provided source range correction",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "express-15",
+      "repository": "express",
+      "query": "Where are attachment downloads configured before sending a file?",
+      "category": "call",
+      "split": "test",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "lib/response.js",
+          "start_line": 437,
+          "end_line": 482
+        }
+      ],
+      "proposal_symbol": "res.download",
+      "review": {
+        "source": "User-provided source range correction",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "express-16",
+      "repository": "express",
+      "query": "Where are redirect status codes and Location headers generated?",
+      "category": "functionality",
+      "split": "test",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "lib/response.js",
+          "start_line": 814,
+          "end_line": 866
+        }
+      ],
+      "proposal_symbol": "res.redirect",
+      "review": {
+        "source": "User-provided source range correction",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "express-17",
+      "repository": "express",
+      "query": "Where does Express serialize cookies into Set-Cookie headers?",
+      "category": "dependency",
+      "split": "test",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "lib/response.js",
+          "start_line": 747,
+          "end_line": 777
+        }
+      ],
+      "proposal_symbol": "res.cookie",
+      "review": {
+        "source": "Explicit user confirmation of the remaining 46 labels",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "express-18",
+      "repository": "express",
+      "query": "Where are request headers retrieved case-insensitively?",
+      "category": "symbol",
+      "split": "test",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "lib/request.js",
+          "start_line": 64,
+          "end_line": 83
+        }
+      ],
+      "proposal_symbol": "req.header",
+      "review": {
+        "source": "Explicit user confirmation of the remaining 46 labels",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "express-19",
+      "repository": "express",
+      "query": "Where does a request check its content type?",
+      "category": "functionality",
+      "split": "test",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "lib/request.js",
+          "start_line": 269,
+          "end_line": 281
+        }
+      ],
+      "proposal_symbol": "req.is",
+      "review": {
+        "source": "Explicit user confirmation of the remaining 46 labels",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "express-20",
+      "repository": "express",
+      "query": "Where is the HTTP Range request header parsed?",
+      "category": "dependency",
+      "split": "test",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "lib/request.js",
+          "start_line": 214,
+          "end_line": 218
+        }
+      ],
+      "proposal_symbol": "req.range",
+      "review": {
+        "source": "Explicit user confirmation of the remaining 46 labels",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "typescript-01",
+      "repository": "typescript",
+      "query": "Where is the TypeScript lexical scanner created?",
+      "category": "functionality",
+      "split": "dev",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "src/compiler/scanner.ts",
+          "start_line": 1021,
+          "end_line": 1051
+        }
+      ],
+      "proposal_symbol": "createScanner",
+      "review": {
+        "source": "Explicit user confirmation of the remaining 46 labels",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "typescript-02",
+      "repository": "typescript",
+      "query": "Find the public createSourceFile parsing entry point.",
+      "category": "symbol",
+      "split": "dev",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "src/compiler/parser.ts",
+          "start_line": 1343,
+          "end_line": 1369
+        }
+      ],
+      "proposal_symbol": "createSourceFile",
+      "review": {
+        "source": "Explicit user confirmation of the remaining 46 labels",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "typescript-03",
+      "repository": "typescript",
+      "query": "Where is the symbol binder created?",
+      "category": "functionality",
+      "split": "dev",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "src/compiler/binder.ts",
+          "start_line": 519,
+          "end_line": 549
+        }
+      ],
+      "proposal_symbol": "createBinder",
+      "review": {
+        "source": "Explicit user confirmation of the remaining 46 labels",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "typescript-04",
+      "repository": "typescript",
+      "query": "Where is a compiler program constructed from source roots and options?",
+      "category": "functionality",
+      "split": "dev",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "src/compiler/program.ts",
+          "start_line": 1596,
+          "end_line": 1626
+        }
+      ],
+      "proposal_symbol": "createProgram",
+      "review": {
+        "source": "Explicit user confirmation of the remaining 46 labels",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "typescript-05",
+      "repository": "typescript",
+      "query": "Where is the printer configured with output handlers?",
+      "category": "dependency",
+      "split": "dev",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "src/compiler/emitter.ts",
+          "start_line": 1193,
+          "end_line": 1223
+        }
+      ],
+      "proposal_symbol": "createPrinter",
+      "review": {
+        "source": "Explicit user confirmation of the remaining 46 labels",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "typescript-06",
+      "repository": "typescript",
+      "query": "Where does the scanner consume identifier characters?",
+      "category": "functionality",
+      "split": "test",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "src/compiler/scanner.ts",
+          "start_line": 2424,
+          "end_line": 2435
+        }
+      ],
+      "proposal_symbol": "createScanner.scanIdentifier",
+      "review": {
+        "source": "Explicit user confirmation of the remaining 46 labels",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "typescript-07",
+      "repository": "typescript",
+      "query": "Where are numeric literals scanned?",
+      "category": "functionality",
+      "split": "test",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "src/compiler/scanner.ts",
+          "start_line": 1232,
+          "end_line": 1262
+        }
+      ],
+      "proposal_symbol": "createScanner.scanNumber",
+      "review": {
+        "source": "Explicit user confirmation of the remaining 46 labels",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "typescript-08",
+      "repository": "typescript",
+      "query": "Where are string literals and escape sequences scanned?",
+      "category": "functionality",
+      "split": "test",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "src/compiler/scanner.ts",
+          "start_line": 1421,
+          "end_line": 1451
+        }
+      ],
+      "proposal_symbol": "createScanner.scanString",
+      "review": {
+        "source": "Explicit user confirmation of the remaining 46 labels",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "typescript-09",
+      "repository": "typescript",
+      "query": "Where are template literal token values scanned?",
+      "category": "functionality",
+      "split": "test",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "src/compiler/scanner.ts",
+          "start_line": 1461,
+          "end_line": 1491
+        }
+      ],
+      "proposal_symbol": "createScanner.scanTemplateAndSetTokenValue",
+      "review": {
+        "source": "Explicit user confirmation of the remaining 46 labels",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "typescript-10",
+      "repository": "typescript",
+      "query": "Where does the internal parser parse a complete source file?",
+      "category": "call",
+      "split": "test",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "src/compiler/parser.ts",
+          "start_line": 1602,
+          "end_line": 1632
+        }
+      ],
+      "proposal_symbol": "parseSourceFile",
+      "review": {
+        "source": "Explicit user confirmation of the remaining 46 labels",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "typescript-11",
+      "repository": "typescript",
+      "query": "Where does statement parsing dispatch by token kind?",
+      "category": "call",
+      "split": "test",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "src/compiler/parser.ts",
+          "start_line": 7358,
+          "end_line": 7388
+        }
+      ],
+      "proposal_symbol": "parseStatement",
+      "review": {
+        "source": "Explicit user confirmation of the remaining 46 labels",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "typescript-12",
+      "repository": "typescript",
+      "query": "Where are function declarations parsed?",
+      "category": "functionality",
+      "split": "test",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "src/compiler/parser.ts",
+          "start_line": 7707,
+          "end_line": 7724
+        }
+      ],
+      "proposal_symbol": "parseFunctionDeclaration",
+      "review": {
+        "source": "Explicit user confirmation of the remaining 46 labels",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "typescript-13",
+      "repository": "typescript",
+      "query": "Where are class declarations parsed?",
+      "category": "functionality",
+      "split": "test",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "src/compiler/parser.ts",
+          "start_line": 8123,
+          "end_line": 8125
+        }
+      ],
+      "proposal_symbol": "parseClassDeclaration",
+      "review": {
+        "source": "Explicit user confirmation of the remaining 46 labels",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "typescript-14",
+      "repository": "typescript",
+      "query": "Where does the binder dispatch work by syntax node kind?",
+      "category": "call",
+      "split": "test",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "src/compiler/binder.ts",
+          "start_line": 2836,
+          "end_line": 2866
+        }
+      ],
+      "proposal_symbol": "createBinder.bindWorker",
+      "review": {
+        "source": "Explicit user confirmation of the remaining 46 labels",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "typescript-15",
+      "repository": "typescript",
+      "query": "Where does the binder register a function declaration?",
+      "category": "functionality",
+      "split": "test",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "src/compiler/binder.ts",
+          "start_line": 3696,
+          "end_line": 3711
+        }
+      ],
+      "proposal_symbol": "createBinder.bindFunctionDeclaration",
+      "review": {
+        "source": "Explicit user confirmation of the remaining 46 labels",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "typescript-16",
+      "repository": "typescript",
+      "query": "Where does module resolution choose a strategy from compiler options?",
+      "category": "dependency",
+      "split": "test",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "src/compiler/moduleNameResolver.ts",
+          "start_line": 1401,
+          "end_line": 1431
+        }
+      ],
+      "proposal_symbol": "resolveModuleName",
+      "review": {
+        "source": "Explicit user confirmation of the remaining 46 labels",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "typescript-17",
+      "repository": "typescript",
+      "query": "Where is a tsconfig file read into a parsed command line?",
+      "category": "dependency",
+      "split": "test",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "src/compiler/commandLineParser.ts",
+          "start_line": 2175,
+          "end_line": 2205
+        }
+      ],
+      "proposal_symbol": "getParsedCommandLineOfConfigFile",
+      "review": {
+        "source": "Explicit user confirmation of the remaining 46 labels",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "typescript-18",
+      "repository": "typescript",
+      "query": "Find the function that parses JSON compiler configuration content.",
+      "category": "symbol",
+      "split": "test",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "src/compiler/commandLineParser.ts",
+          "start_line": 2951,
+          "end_line": 2953
+        }
+      ],
+      "proposal_symbol": "parseJsonConfigFileContent",
+      "review": {
+        "source": "Explicit user confirmation of the remaining 46 labels",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "typescript-19",
+      "repository": "typescript",
+      "query": "Where does AST traversal visit the children of a syntax node?",
+      "category": "call",
+      "split": "test",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "src/compiler/parser.ts",
+          "start_line": 1248,
+          "end_line": 1254
+        }
+      ],
+      "proposal_symbol": "forEachChild",
+      "review": {
+        "source": "Explicit user confirmation of the remaining 46 labels",
+        "date": "2026-10-02"
+      }
+    },
+    {
+      "id": "typescript-20",
+      "repository": "typescript",
+      "query": "Where is the TypeScript language service constructed from its host?",
+      "category": "dependency",
+      "split": "test",
+      "human_confirmed": true,
+      "relevant": [
+        {
+          "path": "src/services/services.ts",
+          "start_line": 1627,
+          "end_line": 1657
+        }
+      ],
+      "proposal_symbol": "createLanguageService",
+      "review": {
+        "source": "Explicit user confirmation of the remaining 46 labels",
+        "date": "2026-10-02"
+      }
+    }
+  ],
+  "annotation_status": "All 60 labels human-confirmed by the user; includes 14 reviewed source-range corrections.",
+  "protocol": "repomap-60-v1"
+}

@@ -13,6 +13,8 @@ from repomap.indexing import IndexStore, Indexer, TaskManager
 from repomap.vectors import VectorPipeline
 from repomap.retrieval import SearchEngine
 from repomap.exploration import Explorer
+from repomap.answers import AnswerService
+from repomap.reports import reports
 
 
 class RepositoryImport(BaseModel):
@@ -40,6 +42,7 @@ def create_app(data_dir: Path | None = None, encoder=None) -> FastAPI:
     vectors = VectorPipeline(store, encoder)
     engine = SearchEngine(store, vectors)
     explorer = Explorer(store)
+    answers = AnswerService(engine)
     tasks = TaskManager(Indexer(store, vectors))
 
     @asynccontextmanager
@@ -110,5 +113,14 @@ def create_app(data_dir: Path | None = None, encoder=None) -> FastAPI:
     def graph(repository_id: str, snapshot_id: str, path: str | None = None,
               symbol_id: str | None = None, limit: int = Query(100, ge=1, le=500)):
         return explorer.graph(repository_id, snapshot_id, path, symbol_id, limit)
+
+    @application.post("/api/v1/answers")
+    def answer(request: SearchRequest):
+        return answers.answer(request.repository_id, request.snapshot_id, request.query,
+                              language=request.language, path_prefix=request.path_prefix)
+
+    @application.get("/api/v1/reports")
+    def evaluation_reports():
+        return reports(catalog.data_dir)
 
     return application

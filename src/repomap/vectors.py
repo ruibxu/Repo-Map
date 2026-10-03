@@ -28,8 +28,11 @@ class LocalEncoder:
     def load(self):
         with self.lock:
             if self._model is None:
+                threads = os.environ.get("REPOMAP_CPU_THREADS", "4")
+                for variable in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS"):
+                    os.environ.setdefault(variable, threads)
                 import torch
-                torch.set_num_threads(int(os.environ.get("REPOMAP_CPU_THREADS", "4")))
+                torch.set_num_threads(int(threads))
                 from sentence_transformers import SentenceTransformer
                 self._model = SentenceTransformer(self.name, revision=self.revision, device="cpu")
                 self._model.max_seq_length = 512
@@ -55,7 +58,7 @@ class LocalEncoder:
 
 def split_code(text, tokenizer, budget=448, overlap=64):
     """Split at line/statement boundaries when possible, using exact token offsets."""
-    offsets = tokenizer(text, add_special_tokens=False, return_offsets_mapping=True)["offset_mapping"]
+    offsets = tokenizer(text, add_special_tokens=False, return_offsets_mapping=True, verbose=False)["offset_mapping"]
     start = 0
     while start < len(offsets):
         end = min(start + budget, len(offsets))
@@ -82,7 +85,7 @@ def make_chunks(snapshot_id, files, tokenizer):
         covered = []
         for symbol in file["parsed"]["symbols"]:
             start, end = symbol["start_byte"], symbol["end_byte"]
-            if symbol["kind"] in {"class", "interface"}:
+            if symbol["kind"] in {"class", "interface", "namespace"}:
                 children = [s["start_byte"] for s in file["parsed"]["symbols"] if s["scope"] == symbol["id"]]
                 if children:
                     end = min(children)
@@ -152,13 +155,18 @@ class VectorPipeline:
 
     def build(self, snapshot, files, progress):
         started = time.perf_counter()
+        model_started = time.perf_counter()
         fingerprint = self.encoder.fingerprint
+        model_seconds = time.perf_counter() - model_started
+        chunk_started = time.perf_counter()
         chunks = make_chunks(snapshot, files, self.encoder.tokenizer)
+        chunk_seconds = time.perf_counter() - chunk_started
         table = fts_table(snapshot)
         with self.store.catalog.connect() as db:
             db.execute(f"CREATE VIRTUAL TABLE {table} USING fts5(id UNINDEXED, path, symbol, code, tokenize='unicode61')")
-        collection = self.client.create_collection("snapshot_" + snapshot, embedding_function=None, metadata={"hnsw:space": "cosine", "model": fingerprint})
+        collection = self.client.create_collection("snapshot_" + snapshot, embedding_function=None, metadata={"hnsw:space": "cosine", "hnsw:num_threads": int(os.environ.get("REPOMAP_CPU_THREADS", "4")), "model": fingerprint})
         hits = 0
+        encode_seconds = 0
         for offset in range(0, len(chunks), 64):
             batch = chunks[offset:offset + 64]
             vectors = [None] * len(batch)
@@ -174,7 +182,9 @@ class VectorPipeline:
                 else:
                     missing.append(i)
             if missing:
+                encode_started = time.perf_counter()
                 encoded = self.encoder.encode([batch[i]["embedding_text"] for i in missing])
+                encode_seconds += time.perf_counter() - encode_started
                 with self.store.catalog.connect() as db:
                     for i, vector in zip(missing, encoded):
                         vectors[i] = vector
@@ -188,7 +198,8 @@ class VectorPipeline:
                         " ".join(terms(chunk["path"])), " ".join(terms(chunk["symbol"] or "")), " ".join(terms(chunk["excerpt"]))))
             progress(0.5 + 0.45 * min(offset + 64, len(chunks)) / max(1, len(chunks)))
         return {"chunks": len(chunks), "embedding_cache_hits": hits,
-                "embedding_seconds": time.perf_counter() - started, "model": fingerprint,
+                "embedding_seconds": encode_seconds, "vector_pipeline_seconds": time.perf_counter() - started,
+                "model_load_seconds": model_seconds, "chunking_seconds": chunk_seconds, "model": fingerprint,
                 "chunking": {"max_tokens": 512, "overlap": 64, "version": "v1"}}
 
     def delete(self, snapshot):

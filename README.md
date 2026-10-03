@@ -6,7 +6,7 @@ A local, single-user repository intelligence and retrieval research engine.
 
 The first implementation provides a FastAPI repository catalog backed by SQLite, public GitHub imports pinned to commit SHAs, local Git root registration, and a React repository import screen. Duplicate imports return the existing catalog entry. Git operations disable interactive credential prompts; public GitHub clones disable Git credential helpers.
 
-Tree-sitter extraction, conservative lexical/import binding, immutable source capture, parsing and embedding caches, serial indexing tasks, Chroma vectors, per-snapshot FTS5 indexes, and all four retrieval strategies are implemented. Indexes are published only after structural, text, and vector indexing succeed. Snapshot-bound source, definition/reference, and graph APIs are available, together with React index polling, search filters, source browsing, and one-hop graph expansion. Optional answers and the full benchmark are the remaining milestone. An imported repository is not an indexed snapshot. Local registration records the current HEAD without changing the working tree. GitHub cloning runs synchronously with a 120-second Git operation timeout. Failed clone directories may remain under the ignored data directory, but failed imports are not added to the catalog.
+Tree-sitter extraction, conservative lexical/import binding, immutable source capture, parsing and embedding caches, serial indexing tasks, Chroma vectors, per-snapshot FTS5 indexes, and all four retrieval strategies are implemented. Indexes are published only after structural, text, and vector indexing succeed. Snapshot-bound source, definition/reference, and graph APIs are available, together with React index polling, search filters, source browsing, and one-hop graph expansion. Optional cited LLM answers, no-key fallback, and evaluation report browsing are implemented. All 60 benchmark labels are human-confirmed, including 14 source-range corrections. Final measurement completion remains pending. An imported repository is not an indexed snapshot. Local registration records the current HEAD without changing the working tree. GitHub cloning runs synchronously with a 120-second Git operation timeout. Failed clone directories may remain under the ignored data directory, but failed imports are not added to the catalog.
 
 ## Local development on Windows
 
@@ -71,12 +71,22 @@ $env:REPOMAP_TEST_LOCAL_MODEL = '1'
 
 `POST /api/v1/repositories/{id}/index` queues an index with an optional `exclusions` list. Poll `/api/v1/tasks/{task_id}`, list `/api/v1/repositories/{id}/snapshots`, and search with `POST /api/v1/search`. Unpublished, failed, retired, and foreign-repository snapshots cannot be searched.
 
-## Next phases
+## Optional answers and benchmark status
 
-1. AST parsing, conservative symbol binding, and immutable SQLite index snapshots.
-2. Vector-only, BM25, hybrid, and AST-aware retrieval with an evaluation CLI.
-3. Code browsing, reference lookup, and dependency graph exploration in React.
-4. Optional cited LLM answers and a manually confirmed benchmark for Flask, Express, and TypeScript.
+Configure `REPOMAP_LLM_BASE_URL` (including its API version path), `REPOMAP_LLM_MODEL`, and optional `REPOMAP_LLM_API_KEY` in the backend shell. The service calls the configured base URL plus `/chat/completions`. `.env.example` documents configuration names; the application does not automatically load dotenv files.
+
+`POST /api/v1/answers` retrieves AST-aware evidence before optional generation. It caps evidence at 20 chunks and approximately 6,000 tokens including reserved prompt space, validates returned chunk citations, and reports LLM latency separately. With no LLM configuration, search results remain available. Cloud behavior is tested with mocked HTTP transports; a live cloud provider is not configured in this workspace.
+
+The React interface includes question answering with evidence links and evaluation tables. `GET /api/v1/reports` reads valid results files under the local data directory's `reports` folder. Run evaluation outputs there to show them in the UI.
+
+See [benchmarks/README.md](benchmarks/README.md) for exact source commits, review status, corpus exclusions, and reproduction. The benchmark preparation script preserves existing annotations. Final quality claims require human-confirmed labels; draft reports are explicitly provisional.
+
+For a small real-model demonstration repository:
+
+```powershell
+.\.venv\Scripts\python scripts/create_demo.py
+```
+
+This writes only ignored local data and imports an example authentication flow. Its credentials are demonstration literals, not production authentication.
 
 See [AGENTS.md](AGENTS.md) for architecture constraints and the evaluation protocol.
-

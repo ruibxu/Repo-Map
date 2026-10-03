@@ -2,6 +2,8 @@ import React, {useEffect, useRef, useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import {request, post, Repository, Snapshot, Task, Hit} from './api';
 import {Explorer} from './Explorer';
+import {Answers} from './Answers';
+import {Reports} from './Reports';
 import './style.css';
 
 function App() {
@@ -11,6 +13,8 @@ function App() {
   repositoryRef.current = repository;
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const [snapshot, setSnapshot] = useState('');
+  const snapshotRef = useRef(snapshot);
+  snapshotRef.current = snapshot;
   const [kind, setKind] = useState('github');
   const [source, setSource] = useState('');
   const [busy, setBusy] = useState(false);
@@ -57,7 +61,7 @@ function App() {
   }
   async function runSearch(event: React.FormEvent) {
     event.preventDefault(); setBusy(true); setError(''); setSelected(null);
-    try {const result = await post<{results: Hit[]; latency_ms: number}>('/search', {repository_id: repository, snapshot_id: snapshot, query: search, strategy, k: 20, language: language || null, path_prefix: pathPrefix || null}); setHits(result.results); setLatency(result.latency_ms);}
+    try {const result = await post<{repository_id: string; snapshot_id: string; results: Hit[]; latency_ms: number}>('/search', {repository_id: repository, snapshot_id: snapshot, query: search, strategy, k: 20, language: language || null, path_prefix: pathPrefix || null}); if (result.repository_id === repositoryRef.current && result.snapshot_id === snapshotRef.current) {setHits(result.results); setLatency(result.latency_ms);}}
     catch (error) {setError(String(error));} finally {setBusy(false);}
   }
   const current = snapshots.find(item => item.id === snapshot);
@@ -80,7 +84,9 @@ function App() {
       {latency !== null && <p className="muted">{hits.length} results · {latency.toFixed(1)} ms</p>}
       {hits.map(hit => <article key={hit.id}><button className="text-button" onClick={() => setSelected(hit)}>{hit.symbol || hit.path}</button><p>{hit.path}:{hit.start_line}-{hit.end_line} · {hit.score.toFixed(5)} · {hit.origins.join(', ')}</p><pre>{hit.excerpt.slice(0, 500)}</pre></article>)}
     </section>
+    {snapshot && <Answers key={snapshot} repository={repository} snapshot={snapshot} onOpen={setSelected}/>}
     {selected && <Explorer repository={repository} snapshot={snapshot} hit={selected}/>}
+    <Reports/>
   </main>;
 }
 
