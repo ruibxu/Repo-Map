@@ -5,10 +5,12 @@ import json
 import os
 import threading
 import time
+from bisect import bisect_right
 
 from repomap.parsing import identity
 
 MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+CHUNKING_VERSION = "v2-statements"
 
 
 def fts_table(snapshot):
@@ -56,8 +58,8 @@ class LocalEncoder:
             return self.load().encode(texts, normalize_embeddings=True, show_progress_bar=False, batch_size=32).tolist()
 
 
-def split_code(text, tokenizer, budget=448, overlap=64):
-    """Split at line/statement boundaries when possible, using exact token offsets."""
+def split_code(text, tokenizer, budget=448, overlap=64, statement_ends=None):
+    """Prefer AST statement ends; oversized statements still obey the token cap."""
     offsets = tokenizer(text, add_special_tokens=False, return_offsets_mapping=True, verbose=False)["offset_mapping"]
     start = 0
     while start < len(offsets):
@@ -65,7 +67,11 @@ def split_code(text, tokenizer, budget=448, overlap=64):
         char_start = offsets[start][0]
         char_end = offsets[end - 1][1]
         if end < len(offsets):
-            boundary = text.rfind("\n", char_start, char_end)
+            if statement_ends is not None:
+                index = bisect_right(statement_ends, char_end) - 1
+                boundary = statement_ends[index] if index >= 0 else -1
+            else:
+                boundary = text.rfind("\n", char_start, char_end)
             if boundary > char_start:
                 adjusted = next((i for i in range(end - 1, start, -1) if offsets[i][1] <= boundary), None)
                 if adjusted is not None and adjusted - start > overlap:
@@ -103,7 +109,12 @@ def make_chunks(snapshot_id, files, tokenizer):
             prefix = f"{path}\n{symbol['qualified_name'] if symbol else ''}\n"
             prefix_tokens = tokenizer(prefix, add_special_tokens=False)["input_ids"][:60]
             prefix = tokenizer.decode(prefix_tokens, skip_special_tokens=True) + "\n"
-            for start, end, code in split_code(unit, tokenizer):
+            boundaries = None
+            if file["parsed"]["language"] != "text":
+                points = file["parsed"].get("statement_ends", [])
+                points = points[bisect_right(points, offset):bisect_right(points, offset + len(unit.encode()))]
+                boundaries = [len(raw[offset:point].decode()) for point in points]
+            for start, end, code in split_code(unit, tokenizer, statement_ends=boundaries):
                 if not code.strip():
                     continue
                 byte_start = offset + len(unit[:start].encode())
@@ -172,7 +183,7 @@ class VectorPipeline:
             vectors = [None] * len(batch)
             missing, keys = [], []
             for i, chunk in enumerate(batch):
-                key = hashlib.sha256((fingerprint + ":chunks-v1:" + chunk["embedding_text"]).encode()).hexdigest()
+                key = hashlib.sha256((fingerprint + ":chunks-" + CHUNKING_VERSION + ":" + chunk["embedding_text"]).encode()).hexdigest()
                 keys.append(key)
                 with self.store.catalog.connect() as db:
                     cached = db.execute("SELECT vector FROM embedding_cache WHERE key=?", (key,)).fetchone()
@@ -200,7 +211,7 @@ class VectorPipeline:
         return {"chunks": len(chunks), "embedding_cache_hits": hits,
                 "embedding_seconds": encode_seconds, "vector_pipeline_seconds": time.perf_counter() - started,
                 "model_load_seconds": model_seconds, "chunking_seconds": chunk_seconds, "model": fingerprint,
-                "chunking": {"max_tokens": 512, "overlap": 64, "version": "v1"}}
+                "chunking": {"max_tokens": 512, "overlap": 64, "version": CHUNKING_VERSION}}
 
     def delete(self, snapshot):
         self.client.delete_collection("snapshot_" + snapshot)

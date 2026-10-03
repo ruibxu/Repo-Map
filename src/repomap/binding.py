@@ -2,6 +2,7 @@
 
 import posixpath
 import re
+from collections import defaultdict
 
 
 def resolve_module(path, module, language, files, tsconfig=None):
@@ -39,25 +40,54 @@ def resolve_module(path, module, language, files, tsconfig=None):
 def bind(files: dict, tsconfig=None) -> list[dict]:
     symbols = {s["id"]: (path, s) for path, file in files.items() for s in file["parsed"]["symbols"]}
     edges = []
+    scope_symbols, scope_imports, barriers, exports, reexports = (defaultdict(list) for _ in range(5))
+    locals_by_symbol = {id_: set(symbol["locals"]) for id_, (_, symbol) in symbols.items()}
+    module_cache, export_cache = {}, {}
+    for path, file in files.items():
+        parsed = file["parsed"]
+        for symbol in parsed["symbols"]:
+            scope_symbols[path, symbol["scope"], symbol["name"]].append(symbol["id"])
+            if symbol["scope"] is None:
+                for name in symbol.get("export_names", []):
+                    exports[path, name].append(symbol["id"])
+        for barrier in parsed.get("barriers", []):
+            barriers[path, barrier["scope"], barrier["name"]].append(True)
+        for imp in parsed["imports"]:
+            if imp["reexport"]:
+                reexports[path].append(imp)
+            else:
+                scope_imports[path, imp["scope"]].append(imp)
+
+    def module(path, name, language):
+        key = path, name, language
+        if key not in module_cache:
+            module_cache[key] = resolve_module(path, name, language, files, tsconfig)
+        return module_cache[key]
 
     def exported(path, name, seen=None):
+        root = seen is None
+        if root and (path, name) in export_cache:
+            return export_cache[path, name]
         seen = set() if seen is None else seen
         if (path, name) in seen:
             return []
         seen.add((path, name))
         parsed = files[path]["parsed"]
-        found = [s["id"] for s in parsed["symbols"] if s["scope"] is None and name in s.get("export_names", [])]
-        for imp in parsed["imports"]:
+        found = list(exports[path, name])
+        for imp in reexports[path]:
             if imp["reexport"] and (imp["alias"] == name or imp["name"] is None):
-                target = resolve_module(path, imp["module"], parsed["language"], files, tsconfig)
+                target = module(path, imp["module"], parsed["language"])
                 if target:
                     found += exported(target, imp["name"] or name, seen)
-        return list(dict.fromkeys(found))
+        found = list(dict.fromkeys(found))
+        if root:
+            export_cache[path, name] = found
+        return found
 
     for path, file in files.items():
         parsed = file["parsed"]
         for imp in parsed["imports"]:
-            target = resolve_module(path, imp["module"], parsed["language"], files, tsconfig)
+            target = module(path, imp["module"], parsed["language"])
             imp["target_path"] = target
             edges.append({"kind": "import", "source_path": path, "target_path": target,
                           "source_symbol": imp["scope"], "target_symbol": None,
@@ -73,14 +103,14 @@ def bind(files: dict, tsconfig=None) -> list[dict]:
             blocked = False
             lookup = ref.get("member_base") if ref["member"] else ref["name"]
             while not blocked:
-                if any(b["name"] == lookup and b["scope"] == scope for b in parsed.get("barriers", [])):
+                if barriers[path, scope, lookup]:
                     break
-                if scope is not None and lookup in symbols[scope][1]["locals"]:
+                if scope is not None and lookup in locals_by_symbol[scope]:
                     break
-                candidates = [s["id"] for s in parsed["symbols"] if s["scope"] == scope and s["name"] == lookup] if not ref["member"] else []
+                candidates = list(scope_symbols[path, scope, lookup]) if not ref["member"] else []
                 if candidates:
                     break
-                imports = [imp for imp in parsed["imports"] if imp["scope"] == scope and (imp["alias"] == lookup or ref["member"] and imp["module"] == lookup and imp["name"] is None) and not imp["reexport"]]
+                imports = [imp for imp in scope_imports[path, scope] if imp["alias"] == lookup or ref["member"] and imp["module"] == lookup and imp["name"] is None]
                 if imports:
                     for imp in imports:
                         if imp["target_path"]:
@@ -92,7 +122,7 @@ def bind(files: dict, tsconfig=None) -> list[dict]:
                 if scope is None:
                     break
                 symbol = symbols[scope][1]
-                if lookup in symbol["locals"]:
+                if lookup in locals_by_symbol[scope]:
                     blocked = True
                     break
                 scope = symbol["scope"]

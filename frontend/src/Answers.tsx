@@ -10,7 +10,12 @@ export function Answers({repository, snapshot, onOpen}: {repository: string; sna
   const [error, setError] = useState('');
   async function ask(event: React.FormEvent) {
     event.preventDefault(); setBusy(true); setError('');
-    try {setAnswer(await post('/answers', {repository_id: repository, snapshot_id: snapshot, query: question}));}
+    try {
+      setAnswer(null);
+      const evidence = await post<{results: Hit[]}>('/search', {repository_id: repository, snapshot_id: snapshot, query: question, strategy: 'ast-aware', k: 20});
+      setAnswer({status: 'generating', answer: null, message: 'Code evidence is available while the optional answer is generated.', results: evidence.results, citations: [], llm_latency_ms: 0});
+      setAnswer(await post('/answers', {repository_id: repository, snapshot_id: snapshot, query: question}));
+    }
     catch (error) {setError(String(error));} finally {setBusy(false);}
   }
   return <section><h2>Ask about this repository</h2><form onSubmit={ask}><label>Question<input required value={question} onChange={event => setQuestion(event.target.value)} placeholder="How does a login request reach authentication?"/></label><button disabled={busy || !snapshot}>{busy ? 'Retrieving evidence...' : 'Ask with code evidence'}</button></form>

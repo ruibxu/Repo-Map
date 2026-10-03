@@ -142,3 +142,26 @@ def test_anonymous_parameter_and_reassignment_are_not_false_bindings():
 def test_namespace_is_a_scope():
     parsed = parse("parser.ts", "namespace Parser { export function parse() { return true; } }")
     assert any(s["qualified_name"] == "Parser.parse" for s in parsed["symbols"])
+
+
+def test_syntax_error_regions_cannot_create_definite_references():
+    files = corpus({"broken.py": "def login():\n    return True\n\nlogin ??? invalid\n"})
+    bind(files)
+    parsed = files["broken.py"]["parsed"]
+    assert parsed["diagnostics"]
+    for diagnostic in parsed["diagnostics"]:
+        assert not any(diagnostic["start_byte"] <= ref["start_byte"] < diagnostic["end_byte"] for ref in parsed["references"])
+    assert any(symbol["name"] == "login" for symbol in parsed["symbols"])
+
+
+def test_reexport_cycles_preserve_distinct_exports_for_repeated_lookups():
+    files = corpus({
+        "a.ts": "export function first() {} export * from './b';",
+        "b.ts": "export function second() {} export * from './a';",
+        "main.ts": "import {first, second} from './a'; first(); second(); first(); second();",
+    })
+    bind(files)
+    calls = [ref for ref in files["main.ts"]["parsed"]["references"] if ref["role"] == "call"]
+    assert len(calls) == 4
+    assert all(ref["status"] == "resolved" for ref in calls)
+    assert calls[0]["target"] == calls[2]["target"] != calls[1]["target"] == calls[3]["target"]

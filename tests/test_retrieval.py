@@ -8,6 +8,7 @@ from repomap.evaluation import evaluate, metrics
 from repomap.indexing import Indexer
 from repomap.retrieval import SearchEngine, STRATEGIES
 from repomap.vectors import VectorPipeline, split_code
+from repomap.parsing import parse
 
 
 class TestTokenizer:
@@ -99,3 +100,16 @@ def test_long_chunks_progress_with_overlap():
     assert len(chunks) > 1
     assert all(len(chunk[2].split()) <= 512 for chunk in chunks)
     assert chunks[-1][1] == len(text.rstrip())
+
+
+@pytest.mark.parametrize("path,source", [
+    ("code.py", "prefix = one + two\nvalue = call(\n    first,\n    second,\n    third,\n    fourth,\n    fifth,\n    sixth,\n)\n"),
+    ("code.ts", "const prefix = one + two;\nconst value = call(\n    first,\n    second,\n    third,\n    fourth,\n    fifth,\n    sixth,\n);\n"),
+])
+def test_multiline_statements_are_preferred_over_interior_newlines(path, source):
+    parsed = parse(path, source)
+    boundaries = [len(source.encode()[:point].decode()) for point in parsed["statement_ends"]]
+    chunks = list(split_code(source, TestTokenizer(), budget=12, overlap=2, statement_ends=boundaries))
+    assert chunks[0][2] == source.splitlines()[0]
+    assert chunks[-1][1] == len(source.rstrip())
+    assert all(len(code.split()) <= 12 for _, _, code in chunks)

@@ -1,4 +1,4 @@
-"""Prepare pinned source proposals, index twice, and run a provisional benchmark."""
+"""Preserve reviewed annotations, index pinned sources twice, and benchmark retrieval."""
 
 import argparse
 import json
@@ -12,7 +12,7 @@ from repomap.indexing import Indexer, IndexStore
 from repomap.parsing import VERSION, parse
 from repomap.repositories import RepositoryCatalog, git
 from repomap.retrieval import SearchEngine
-from repomap.vectors import VectorPipeline
+from repomap.vectors import CHUNKING_VERSION, VectorPipeline
 
 EXCLUSIONS = ["tests/*", "test/*", "examples/*", "docs/*", ".github/*", ".vscode/*", "src/testRunner/*", "src/harness/*", "src/lib/*", "lib/*", "package-lock.json", "uv.lock"]
 
@@ -69,6 +69,7 @@ def main():
         snapshots = store.snapshots(repository["id"])
         ready = [s for s in snapshots if s["status"] == "ready" and s["commit_sha"] == spec["commit_sha"]
                  and s["metrics"].get("parser") == VERSION and s["metrics"].get("exclusions") == exclusions
+                 and s["metrics"].get("chunking", {}).get("version") == CHUNKING_VERSION
                  and s["metrics"].get("model") == vectors.encoder.fingerprint]
         if len(ready) >= 2:
             full, incremental = ready[1]["id"], ready[0]["id"]

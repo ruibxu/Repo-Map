@@ -8,7 +8,7 @@ import tree_sitter_python
 import tree_sitter_javascript
 import tree_sitter_typescript
 
-VERSION = "tree-sitter-0.25.2-extraction-v5"
+VERSION = "tree-sitter-0.25.2-extraction-v6"
 LANGUAGES = {".py": "python", ".js": "javascript", ".jsx": "javascript",
              ".ts": "typescript", ".tsx": "tsx"}
 DEFINITIONS = {"function_definition": "function", "class_definition": "class",
@@ -29,7 +29,7 @@ def walk(node):
 
 def parse(path: str, source: str) -> dict:
     language = LANGUAGES.get(PurePosixPath(path).suffix, "text")
-    result = {"language": language, "symbols": [], "references": [], "imports": [], "diagnostics": [], "barriers": []}
+    result = {"language": language, "symbols": [], "references": [], "imports": [], "diagnostics": [], "barriers": [], "statement_ends": []}
     if language == "text":
         return result
     capsule = {"python": tree_sitter_python.language,
@@ -51,6 +51,9 @@ def parse(path: str, source: str) -> dict:
     def visit(node, scope=None, parent_kind=None):
         if node.type == "ERROR" or node.is_missing:
             result["diagnostics"].append({"kind": "syntax-error", **position(node)})
+            return
+        if not node.has_error and (node.type.endswith("_statement") or node.type in DEFINITIONS or node.type in {"lexical_declaration", "variable_declaration"}):
+            result["statement_ends"].append(node.end_byte)
         # Import declarations are handled as bindings, not identifier references.
         if node.type in {"import_statement", "import_from_statement", "export_statement"}:
             module = node.child_by_field_name("module_name") or node.child_by_field_name("source")
@@ -190,4 +193,5 @@ def parse(path: str, source: str) -> dict:
                     if symbol["scope"] is None and (value.type == "identifier" and symbol["name"] == text(value) or symbol["start_byte"] == value.start_byte):
                         symbol["export_names"].append(exported_name)
                         symbol["exported"] = True
+    result["statement_ends"] = sorted(set(result["statement_ends"]))
     return result

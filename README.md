@@ -71,13 +71,15 @@ $env:REPOMAP_TEST_LOCAL_MODEL = '1'
 
 `POST /api/v1/repositories/{id}/index` queues an index with an optional `exclusions` list. Poll `/api/v1/tasks/{task_id}`, list `/api/v1/repositories/{id}/snapshots`, and search with `POST /api/v1/search`. Unpublished, failed, retired, and foreign-repository snapshots cannot be searched.
 
+Long structured chunks prefer Tree-sitter statement boundaries. A single statement larger than the token budget is split at token offsets to preserve the hard limit; unstructured text uses line-preferred windows. Parser and chunking versions are recorded in snapshot metrics and cache identities. Syntax-error regions remain searchable as text and cannot establish definite identifier bindings.
+
 ## Optional answers and benchmark status
 
 Configure `REPOMAP_LLM_BASE_URL` (including its API version path), `REPOMAP_LLM_MODEL`, and optional `REPOMAP_LLM_API_KEY` in the backend shell. The service calls the configured base URL plus `/chat/completions`. `.env.example` documents configuration names; the application does not automatically load dotenv files.
 
 `POST /api/v1/answers` retrieves AST-aware evidence before optional generation. It caps evidence at 20 chunks and approximately 6,000 tokens including reserved prompt space, validates returned chunk citations, and reports LLM latency separately. With no LLM configuration, search results remain available. Cloud behavior is tested with mocked HTTP transports; a live cloud provider is not configured in this workspace.
 
-The React interface includes question answering with evidence links and evaluation tables. `GET /api/v1/reports` reads valid results files under the local data directory's `reports` folder. Run evaluation outputs there to show them in the UI.
+The React interface shows retrieved evidence before requesting optional generation, with evidence links and evaluation tables. `GET /api/v1/reports` reads valid results files under the local data directory's `reports` folder. Run evaluation outputs there to show them in the UI.
 
 See [benchmarks/README.md](benchmarks/README.md) for exact source commits, review status, corpus exclusions, and reproduction. The benchmark preparation script preserves existing annotations. Final quality claims require human-confirmed labels; draft reports are explicitly provisional.
 

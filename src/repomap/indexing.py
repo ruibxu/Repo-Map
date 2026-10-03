@@ -177,10 +177,12 @@ class Indexer:
                 tsconfig = json.loads(files["tsconfig.json"]["content"]).get("compilerOptions", {})
             except (ValueError, AttributeError):
                 skipped.append({"path": "tsconfig.json", "reason": "unsupported-config-syntax"})
+        binding_started = time.perf_counter()
         edges = bind(files, tsconfig)
+        binding_seconds = time.perf_counter() - binding_started
         snapshot_id = reserved_snapshot or uuid.uuid4().hex
         metrics = {"files": len(files), "bytes": sum(len(f["content"].encode()) for f in files.values()),
-                   "parse_cache_hits": hits, "parse_seconds": parse_seconds, "skipped": skipped,
+                   "parse_cache_hits": hits, "parse_seconds": parse_seconds, "binding_seconds": binding_seconds, "skipped": skipped,
                    "parser": VERSION, "exclusions": list(exclusions),
                    "commit_sha": commit, "content_manifest_hash": hashlib.sha256(json.dumps({p: f['hash'] for p, f in sorted(files.items())}, sort_keys=True).encode()).hexdigest()}
         with self.store.catalog.connect() as db:

@@ -9,6 +9,7 @@ import time
 from pathlib import Path
 
 from repomap.retrieval import STRATEGIES
+from repomap.repositories import git
 
 
 def metrics(results, relevant):
@@ -89,6 +90,12 @@ def evaluate(engine, dataset, output: Path, split="test", repeats=3, allow_draft
         "dependencies": {d.metadata["Name"]: d.version for d in importlib.metadata.distributions()},
         "summary": summary, "indexing": indexing, "rows": rows, "repositories": dataset["repositories"]}
     report["annotations_sha256"] = hashlib.sha256(json.dumps(dataset["queries"], sort_keys=True).encode()).hexdigest()
+    try:
+        root = str(Path(__file__).resolve().parents[2])
+        report["implementation"] = {"commit_sha": git("-C", root, "rev-parse", "HEAD"),
+            "working_tree_dirty": bool(git("-C", root, "status", "--porcelain"))}
+    except (ValueError, RuntimeError):
+        report["implementation"] = {"commit_sha": None, "working_tree_dirty": None}
     report["retrieval_configuration"] = {"candidate_limit": 100, "rrf_constant": 60, "expansion_seeds": 20,
         "neighbors_per_seed": 5, "expansion_multiplier": .5, "reranker": None, "query_rewriting": False}
     output.mkdir(parents=True, exist_ok=True)
