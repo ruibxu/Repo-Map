@@ -6,7 +6,7 @@ A local, single-user repository intelligence and retrieval research engine.
 
 The first implementation provides a FastAPI repository catalog backed by SQLite, public GitHub imports pinned to commit SHAs, local Git root registration, and a React repository import screen. Duplicate imports return the existing catalog entry. Git operations disable interactive credential prompts; public GitHub clones disable Git credential helpers.
 
-AST parsing, index snapshots, embedding generation, the four retrieval strategies, reference lookup, dependency graphs, question answering, and benchmarks are planned work. An imported repository is not an indexed snapshot. Local registration records the current HEAD without changing the working tree. GitHub cloning runs synchronously with a 120-second Git operation timeout; persisted background indexing tasks belong to the next phase. Failed clone directories may remain under the ignored data directory, but failed imports are not added to the catalog.
+Tree-sitter extraction, conservative lexical/import binding, immutable source capture, parsing caches, and persisted serial indexing tasks are implemented as backend components. Structural snapshots remain unpublished until text and vector indexes are complete. Embedding generation, retrieval, structural query APIs, graph browsing, question answering, and benchmarks are the remaining milestones. An imported repository is not an indexed snapshot. Local registration records the current HEAD without changing the working tree. GitHub cloning runs synchronously with a 120-second Git operation timeout. Failed clone directories may remain under the ignored data directory, but failed imports are not added to the catalog.
 
 ## Local development on Windows
 

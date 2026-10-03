@@ -17,6 +17,10 @@ pydantic_core==2.46.5
 pytest==8.3.4
 starlette==0.45.3
 tomli==2.4.1
+tree-sitter==0.25.2
+tree-sitter-javascript==0.25.0
+tree-sitter-python==0.25.0
+tree-sitter-typescript==0.23.2
 typing-inspection==0.4.4
 typing_extensions==4.16.0
 uvicorn==0.34.0
