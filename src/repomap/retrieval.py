@@ -20,6 +20,7 @@ class SearchEngine:
             raise ValueError("Use a supported strategy, a nonempty query, and K between 1 and 100.")
         with self.store.catalog.connect() as db:
             rows = db.execute("SELECT data FROM chunks WHERE snapshot_id=?", (snapshot_id,)).fetchall()
+        # Apply the same allowed chunk corpus to every retrieval channel.
         chunks = {c["id"]: c for c in (json.loads(r["data"]) for r in rows)
                   if (not language or c["language"] == language) and (not path_prefix or c["path"].startswith(path_prefix))}
         lexical, semantic = [], []
@@ -59,6 +60,8 @@ class SearchEngine:
             for id_, score in semantic:
                 add(id_, score, "vector")
         else:
+            # RRF combines ranks rather than incompatible BM25/cosine score scales.
+            # A hit in both channels receives both rank contributions.
             for origin, channel in (("bm25", lexical), ("vector", semantic)):
                 for rank, (id_, _) in enumerate(channel, 1):
                     add(id_, 1 / (60 + rank), origin)
@@ -70,6 +73,8 @@ class SearchEngine:
                 if chunk["symbol_id"] in exact:
                     add(id_, 1 / 61, "exact-symbol")
             seeds = sorted(scores, key=lambda id_: (-scores[id_], id_))[:20]
+            # Freeze seed scores so boosted neighbors cannot amplify later seeds
+            # and accidentally turn one-hop expansion into multi-hop retrieval.
             seed_scores = {id_: scores[id_] for id_ in seeds}
             edges = self.store.records("edges", snapshot_id)
             by_path, by_symbol, imported_paths, related_symbols = (defaultdict(set) for _ in range(4))
@@ -78,6 +83,7 @@ class SearchEngine:
                 if chunk["symbol_id"]:
                     by_symbol[chunk["symbol_id"]].add(id_)
             for edge in edges:
+                # Ambiguous relationships can be inspected but cannot justify ranking boosts.
                 if edge["status"] != "resolved":
                     continue
                 if edge["kind"] == "import":
@@ -93,6 +99,8 @@ class SearchEngine:
                 if chunk["symbol_id"]:
                     for symbol in related_symbols[chunk["symbol_id"]]:
                         neighbors.update(by_symbol[symbol])
+                # Stable ordering makes the cap reproducible. Keep the best expansion
+                # score rather than summing repeated contributions for the same neighbor.
                 for id_ in sorted(neighbors - {seed})[:5]:
                     add(id_, seed_scores[seed] * 0.5, "dependency-expansion", maximum=True)
         ranked = sorted(scores, key=lambda id_: (-scores[id_], id_))[:k]

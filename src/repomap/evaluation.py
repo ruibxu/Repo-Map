@@ -63,9 +63,13 @@ def evaluate(engine, dataset, output: Path, split="test", repeats=3, allow_draft
         entry = entries[query["repository"]]
         with engine.store.catalog.connect() as db:
             chunks = [json.loads(r["data"]) for r in db.execute("SELECT data FROM chunks WHERE snapshot_id=?", (entry["snapshot_id"],))]
+        # Map reviewed source ranges to shared chunks by overlap. Every strategy
+        # is scored against the same relevant set, not its own candidates.
         relevant = {c["id"] for c in chunks for annotation in query["relevant"] if c["path"] == annotation["path"] and c["start_line"] <= annotation["end_line"] and c["end_line"] >= annotation["start_line"]}
         for strategy in STRATEGIES:
             args = (entry["repository_id"], entry["snapshot_id"], query["query"], strategy, 20)
+            # Separate first-call latency from warm repeats; this is not process-cold
+            # timing because indexing/model loading may already have occurred.
             first = engine.search(*args)
             warm = [engine.search(*args) for _ in range(repeats)]
             rows.append({"query_id": query["id"], "repository": entry["name"], "strategy": strategy,

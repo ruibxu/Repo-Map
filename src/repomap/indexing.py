@@ -59,6 +59,7 @@ class IndexStore:
             rows = db.execute("SELECT * FROM snapshots WHERE repository_id=? ORDER BY created_at DESC", (repository_id,)).fetchall()
         return [{**dict(row), "metrics": json.loads(row["metrics"])} for row in rows]
 
+    # Validate both identities so callers cannot read another repository's snapshot.
     def require(self, repository_id, snapshot_id, published=True):
         with self.catalog.connect() as db:
             row = db.execute("SELECT * FROM snapshots WHERE id=? AND repository_id=?", (snapshot_id, repository_id)).fetchone()
@@ -82,6 +83,8 @@ class IndexStore:
 
 
 def capture(root: Path, exclusions=()) -> tuple[dict, list]:
+    # Git selects tracked paths; working-tree bytes preserve uncommitted edits.
+    # NUL separators also handle paths containing spaces or newlines.
     result = subprocess.run(["git", "-C", str(root), "ls-files", "-z"], capture_output=True, check=True)
     files, skipped = {}, []
     for raw_path in result.stdout.split(b"\0"):
@@ -159,10 +162,12 @@ class Indexer:
         parse_started = time.perf_counter()
         hits = 0
         for number, (path, file) in enumerate(sorted(files.items())):
+            # Paths affect symbol identities; parser changes invalidate cached output.
             key = hashlib.sha256(f"{VERSION}:{path}:{file['hash']}".encode()).hexdigest()
             with self.store.catalog.connect() as db:
                 cache = db.execute("SELECT data FROM parsed_cache WHERE key=?", (key,)).fetchone()
             if cache:
+                # Binding mutates references; keep cached syntax independent of this run.
                 file["parsed"] = copy.deepcopy(json.loads(cache["data"]))
                 hits += 1
             else:
@@ -186,6 +191,8 @@ class Indexer:
                    "parser": VERSION, "exclusions": list(exclusions),
                    "commit_sha": commit, "content_manifest_hash": hashlib.sha256(json.dumps({p: f['hash'] for p, f in sorted(files.items())}, sort_keys=True).encode()).hexdigest()}
         with self.store.catalog.connect() as db:
+            # Stage captured source first. Queries cannot use it until text and
+            # vector indexing complete and the snapshot becomes ready.
             db.execute("INSERT INTO snapshots VALUES (?,?,?,?,?,?)", (snapshot_id, repository_id, commit, "structured", time.time(), json.dumps(metrics)))
             for path, file in files.items():
                 parsed = file["parsed"]
@@ -196,11 +203,13 @@ class Indexer:
         try:
             if self.vector_pipeline:
                 metrics.update(self.vector_pipeline.build(snapshot_id, files, progress))
+            # Build timing excludes later publication, pruning, and metric collection.
             metrics["total_seconds"] = time.perf_counter() - started
             metrics["files_per_second"] = len(files) / max(metrics["total_seconds"], 0.000001)
             with self.store.catalog.connect() as db:
                 db.execute("UPDATE snapshots SET status=?, metrics=? WHERE id=?", ("ready" if self.vector_pipeline else "structured", json.dumps(metrics), snapshot_id))
             if self.vector_pipeline:
+                # Retire older data only after successful publication.
                 self.prune(repository_id)
             progress(1)
             return snapshot_id
@@ -223,9 +232,11 @@ class Indexer:
 class TaskManager:
     def __init__(self, indexer: Indexer):
         self.indexer = indexer
+        # One worker serializes API indexing without an external queue.
         self.pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix="repomap-index")
         self.lock = threading.Lock()
         with indexer.store.catalog.connect() as db:
+            # Recover interrupted API tasks without invalidating unrelated CLI indexes.
             db.execute("UPDATE tasks SET status='failed', error='Interrupted by application restart' WHERE status IN ('queued','running')")
             db.execute("UPDATE snapshots SET status='failed' WHERE status='structured' AND id IN (SELECT snapshot_id FROM tasks WHERE status='failed')")
 
@@ -234,6 +245,7 @@ class TaskManager:
         with self.indexer.store.catalog.connect() as db:
             if not db.execute("SELECT id FROM repositories WHERE id=?", (repository_id,)).fetchone():
                 raise ValueError("Repository not found.")
+            # Reserve a snapshot identity so restart recovery can locate partial data.
             db.execute("INSERT INTO tasks VALUES (?,?,?,'queued',0,NULL,?)", (task_id, repository_id, task_id, time.time()))
         self.pool.submit(self._run, task_id, repository_id, exclusions)
         return self.get(task_id)

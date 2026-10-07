@@ -12,6 +12,8 @@ export function Explorer({repository, snapshot, hit}: {repository: string; snaps
   const context = {repository_id: repository, snapshot_id: snapshot};
 
   useEffect(() => {
+    // Ignore responses from an old selection after effect cleanup.
+    // Source, symbols, and graph all use the same immutable snapshot.
     let active = true;
     setFile(null); setReferences([]); setError(''); setLine(hit.start_line);
     Promise.all([
@@ -31,6 +33,7 @@ export function Explorer({repository, snapshot, hit}: {repository: string; snaps
   }
 
   async function expand(node: GraphNode) {
+    // External modules have no captured local source to expand.
     if (node.external) return;
     try {setGraph(await request(`/graph?${query({...context, path: node.path || undefined, symbol_id: node.symbol_id || undefined, limit: 40})}`));}
     catch (error) {setError(String(error));}

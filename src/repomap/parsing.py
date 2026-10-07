@@ -36,6 +36,7 @@ def parse(path: str, source: str) -> dict:
                "javascript": tree_sitter_javascript.language,
                "typescript": tree_sitter_typescript.language_typescript,
                "tsx": tree_sitter_typescript.language_tsx}[language]()
+    # Tree-sitter positions use UTF-8 bytes, not Python character offsets.
     raw = source.encode("utf-8")
     root = Parser(Language(capsule)).parse(raw).root_node
     text = lambda node: raw[node.start_byte:node.end_byte].decode("utf-8") if node else ""
@@ -49,6 +50,8 @@ def parse(path: str, source: str) -> dict:
             excluded.update(n.id for n in walk(node))
 
     def visit(node, scope=None, parent_kind=None):
+        # Skip unsafe syntax for structural inference; its original source
+        # remains available to the text chunking pipeline.
         if node.type == "ERROR" or node.is_missing:
             result["diagnostics"].append({"kind": "syntax-error", **position(node)})
             return

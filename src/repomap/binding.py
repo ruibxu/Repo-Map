@@ -38,6 +38,8 @@ def resolve_module(path, module, language, files, tsconfig=None):
 
 
 def bind(files: dict, tsconfig=None) -> list[dict]:
+    # Index names by lexical scope: identical names in unrelated functions
+    # must not become evidence for each other.
     symbols = {s["id"]: (path, s) for path, file in files.items() for s in file["parsed"]["symbols"]}
     edges = []
     scope_symbols, scope_imports, barriers, exports, reexports = (defaultdict(list) for _ in range(5))
@@ -65,6 +67,8 @@ def bind(files: dict, tsconfig=None) -> list[dict]:
         return module_cache[key]
 
     def exported(path, name, seen=None):
+        # Guard re-export cycles per traversal. Cache complete root lookups only;
+        # cycle-shortened recursive answers may be incomplete.
         root = seen is None
         if root and (path, name) in export_cache:
             return export_cache[path, name]
@@ -102,6 +106,8 @@ def bind(files: dict, tsconfig=None) -> list[dict]:
             scope = ref["scope"]
             blocked = False
             lookup = ref.get("member_base") if ref["member"] else ref["name"]
+            # Walk outward until a local binding, reassignment, symbol, or import
+            # determines the lookup. Unknown member access stays unresolved.
             while not blocked:
                 if barriers[path, scope, lookup]:
                     break
@@ -126,6 +132,8 @@ def bind(files: dict, tsconfig=None) -> list[dict]:
                     blocked = True
                     break
                 scope = symbol["scope"]
+            # Only a unique supported binding becomes a definite call edge.
+            # Preserve alternatives for definition/reference inspection.
             ref["candidates"] = sorted(set(candidates))
             ref["status"] = "resolved" if len(ref["candidates"]) == 1 else "candidate" if candidates else "unresolved"
             ref["target"] = ref["candidates"][0] if ref["status"] == "resolved" else None

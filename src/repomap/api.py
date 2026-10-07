@@ -37,6 +37,8 @@ class SearchRequest(BaseModel):
 
 
 def create_app(data_dir: Path | None = None, encoder=None) -> FastAPI:
+    # Compose independent services here; parsing/retrieval do not depend
+    # on HTTP. Tests can inject an encoder without loading a real model.
     catalog = RepositoryCatalog(data_dir or Path(os.environ.get("REPOMAP_DATA_DIR", ".repomap")))
     store = IndexStore(catalog)
     vectors = VectorPipeline(store, encoder)
@@ -48,6 +50,7 @@ def create_app(data_dir: Path | None = None, encoder=None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app):
         yield
+        # Finish the serial worker before application shutdown.
         tasks.close()
 
     application = FastAPI(title="repoMap", version="0.1.0", lifespan=lifespan)

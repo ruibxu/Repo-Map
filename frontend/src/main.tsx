@@ -9,6 +9,8 @@ import './style.css';
 function App() {
   const [repositories, setRepositories] = useState<Repository[]>([]);
   const [repository, setRepository] = useState('');
+  // Async results may arrive after navigation. Refs expose the current
+  // selection rather than the values captured when a request started.
   const repositoryRef = useRef(repository);
   repositoryRef.current = repository;
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
@@ -40,6 +42,7 @@ function App() {
   }, [repository]);
   useEffect(() => {
     if (!task || !['queued', 'running'].includes(task.status)) return;
+    // Poll pending work only; effect cleanup prevents duplicate timers.
     const timer = setInterval(() => {
       request<Task>(`/tasks/${task.id}`).then(next => {
         setTask(next);

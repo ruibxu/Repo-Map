@@ -49,6 +49,8 @@ def main():
     manifest = {"repositories": [{"name": name, **entry} for name, entry in REPOSITORIES.items()], "queries": queries,
                 "annotation_status": "Agent-generated source range proposals; require human review before final evaluation."}
     annotation_path = Path("benchmarks/annotations.json")
+    # Syntax-derived ranges are proposals. Preserve human corrections and
+    # confirmation instead of replacing them with newly generated labels.
     if annotation_path.exists():
         manifest = json.loads(annotation_path.read_text(encoding="utf-8"))
         queries = manifest["queries"]

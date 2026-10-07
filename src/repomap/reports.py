@@ -27,6 +27,8 @@ def reports(data_dir):
                 continue
             if not all(numeric_fields(value, QUALITY_FIELDS) for value in report["summary"].values()) or not all(numeric_fields(value, INDEX_FIELDS) for value in report["indexing"].values()):
                 continue
+            # Send summary metrics rather than thousands of skipped paths to the UI.
+            # Full exclusion records remain in the original report on disk.
             indexing = {name: {**{key: value for key, value in metrics.items() if key != "skipped"},
                                "skipped_files": len(metrics.get("skipped", []))} for name, metrics in report["indexing"].items()}
             output.append({"id": identity(str(path.relative_to(root))), "name": str(path.parent.relative_to(root)),

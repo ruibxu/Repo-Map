@@ -12,6 +12,8 @@ export function Answers({repository, snapshot, onOpen}: {repository: string; sna
     event.preventDefault(); setBusy(true); setError('');
     try {
       setAnswer(null);
+      // Show evidence before waiting for optional generation. Both requests
+      // use the same snapshot; provider failures leave evidence available.
       const evidence = await post<{results: Hit[]}>('/search', {repository_id: repository, snapshot_id: snapshot, query: question, strategy: 'ast-aware', k: 20});
       setAnswer({status: 'generating', answer: null, message: 'Code evidence is available while the optional answer is generated.', results: evidence.results, citations: [], llm_latency_ms: 0});
       setAnswer(await post('/answers', {repository_id: repository, snapshot_id: snapshot, query: question}));

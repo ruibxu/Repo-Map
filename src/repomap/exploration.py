@@ -15,6 +15,7 @@ class Explorer:
         context = self.context(repository_id, snapshot_id)
         if PurePosixPath(path).is_absolute() or ".." in PurePosixPath(path).parts or "\\" in path:
             raise ValueError("Use a repository-relative POSIX path.")
+        # Read captured source from SQLite, never the live working tree.
         file = self.store.source(snapshot_id, path)
         lines = file["content"].splitlines()
         if not lines and start_line == 1 and end_line is None:
@@ -45,6 +46,8 @@ class Explorer:
         lines = content.splitlines(keepends=True)
         if line > len(lines) or column > len(lines[line - 1].encode()):
             raise ValueError("Source position is outside the file.")
+        # Convert lines and UTF-8 byte columns into Tree-sitter coordinates,
+        # including non-ASCII identifiers.
         byte = sum(len(text.encode()) for text in lines[:line - 1]) + column
         references = [r for r in self.store.records("refs", snapshot_id) if r["path"] == path and r["start_byte"] <= byte < r["end_byte"]]
         if references:

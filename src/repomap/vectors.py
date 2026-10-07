@@ -15,6 +15,8 @@ CHUNKING_VERSION = "v2-statements"
 
 def fts_table(snapshot):
     import re
+    # SQL parameters cannot represent table names; validate the identity
+    # before constructing a per-snapshot FTS table name.
     if not re.fullmatch(r"[a-f0-9]{32}", snapshot):
         raise ValueError("Invalid snapshot identity.")
     return "fts_" + snapshot
@@ -51,6 +53,8 @@ class LocalEncoder:
         revision = getattr(config, "_commit_hash", None) or self.revision
         if not revision:
             raise ValueError("Configure an immutable embedding model revision for this model.")
+        # Model names can point to changing weights. Include the resolved revision
+        # and encoding settings in cache/query identity.
         return f"{self.name}@{revision}:max512:normalized:v1"
 
     def encode(self, texts):
@@ -60,6 +64,7 @@ class LocalEncoder:
 
 def split_code(text, tokenizer, budget=448, overlap=64, statement_ends=None):
     """Prefer AST statement ends; oversized statements still obey the token cap."""
+    # Token offsets map the hard embedding budget back to source characters.
     offsets = tokenizer(text, add_special_tokens=False, return_offsets_mapping=True, verbose=False)["offset_mapping"]
     start = 0
     while start < len(offsets):
@@ -79,6 +84,7 @@ def split_code(text, tokenizer, budget=448, overlap=64, statement_ends=None):
         yield char_start, char_end, text[char_start:char_end]
         if end == len(offsets):
             break
+        # Preserve overlap while guaranteeing progress past short boundaries.
         start = max(start + 1, end - overlap)
 
 
@@ -107,12 +113,14 @@ def make_chunks(snapshot_id, files, tokenizer):
             units.append((cursor, raw[cursor:].decode(), None))
         for offset, unit, symbol in units:
             prefix = f"{path}\n{symbol['qualified_name'] if symbol else ''}\n"
+            # Reserve room for path/symbol context without consuming the code budget.
             prefix_tokens = tokenizer(prefix, add_special_tokens=False)["input_ids"][:60]
             prefix = tokenizer.decode(prefix_tokens, skip_special_tokens=True) + "\n"
             boundaries = None
             if file["parsed"]["language"] != "text":
                 points = file["parsed"].get("statement_ends", [])
                 points = points[bisect_right(points, offset):bisect_right(points, offset + len(unit.encode()))]
+                # AST boundaries are bytes; tokenizer offsets are characters.
                 boundaries = [len(raw[offset:point].decode()) for point in points]
             for start, end, code in split_code(unit, tokenizer, statement_ends=boundaries):
                 if not code.strip():
@@ -175,6 +183,8 @@ class VectorPipeline:
         table = fts_table(snapshot)
         with self.store.catalog.connect() as db:
             db.execute(f"CREATE VIRTUAL TABLE {table} USING fts5(id UNINDEXED, path, symbol, code, tokenize='unicode61')")
+        # Each snapshot gets a fresh collection, including cache-only updates.
+        # Chunk IDs match SQLite so both channels share the same corpus.
         collection = self.client.create_collection("snapshot_" + snapshot, embedding_function=None, metadata={"hnsw:space": "cosine", "hnsw:num_threads": int(os.environ.get("REPOMAP_CPU_THREADS", "4")), "model": fingerprint})
         hits = 0
         encode_seconds = 0
@@ -183,6 +193,7 @@ class VectorPipeline:
             vectors = [None] * len(batch)
             missing, keys = [], []
             for i, chunk in enumerate(batch):
+                # Reuse vectors only when exact input, model, and chunking settings agree.
                 key = hashlib.sha256((fingerprint + ":chunks-" + CHUNKING_VERSION + ":" + chunk["embedding_text"]).encode()).hexdigest()
                 keys.append(key)
                 with self.store.catalog.connect() as db:

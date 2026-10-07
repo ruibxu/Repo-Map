@@ -1,3 +1,4 @@
+// Keep frontend data access behind the versioned backend API.
 export async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`/api/v1${path}`, options);
   const body = await response.json();

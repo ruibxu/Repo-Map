@@ -16,6 +16,7 @@ class ImportErrorDetail(ValueError):
 
 def git(*args: str, timeout: int = 120) -> str:
     env = os.environ.copy()
+    # Fail clearly rather than wait for credentials in a service request.
     env["GIT_TERMINAL_PROMPT"] = "0"
     try:
         result = subprocess.run(
@@ -48,6 +49,8 @@ class RepositoryCatalog:
             with connection:
                 yield connection
         finally:
+            # sqlite3 transaction contexts do not close connections; release
+            # file handles explicitly after each operation.
             connection.close()
 
     def list(self) -> list[dict]:
