@@ -353,4 +353,4 @@ The MVP excludes private GitHub repositories, multi-user authorization, cross-re
 
 ## License
 
-RepoMap is licensed under the [MIT License](LICENSE). Third-party dependencies, embedding models, and indexed repositories retain their own licenses.
+RepoMap is licensed under the [Apache License 2.0](LICENSE). Third-party dependencies, embedding models, and indexed repositories retain their own licenses.

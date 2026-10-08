@@ -5,8 +5,8 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "repomap"
 version = "0.1.0"
-license = "MIT"
-license-files = ["LICENSE"]
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
 description = "Local repository intelligence and retrieval research engine"
 requires-python = ">=3.10"
 dependencies = [
