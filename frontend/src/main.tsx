@@ -68,7 +68,7 @@ function App() {
     catch (error) {setError(String(error));} finally {setBusy(false);}
   }
   const current = snapshots.find(item => item.id === snapshot);
-  return <main><header><span className="eyebrow">LOCAL REPOSITORY INTELLIGENCE</span><h1>repoMap</h1><p>Find the implementation. Follow the connections.</p></header>
+  return <main><header><span className="eyebrow">LOCAL REPOSITORY INTELLIGENCE</span><h1>RepoMap</h1><p>Find the implementation. Follow the connections.</p></header>
     {error && <p role="alert" className="error">{error}</p>}
     <section><h2>Repositories</h2><form onSubmit={importRepository} className="columns">
       <label>Source type<select value={kind} onChange={event => setKind(event.target.value)}><option value="github">Public GitHub</option><option value="local">Local Git directory</option></select></label>

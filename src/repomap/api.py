@@ -53,7 +53,7 @@ def create_app(data_dir: Path | None = None, encoder=None) -> FastAPI:
         # Finish the serial worker before application shutdown.
         tasks.close()
 
-    application = FastAPI(title="repoMap", version="0.1.0", lifespan=lifespan)
+    application = FastAPI(title="RepoMap", version="0.1.0", lifespan=lifespan)
     application.state.store = store
     application.state.engine = engine
 

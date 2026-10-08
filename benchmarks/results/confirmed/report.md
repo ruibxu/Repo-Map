@@ -1,4 +1,4 @@
-# repoMap Evaluation
+# RepoMap Evaluation
 
 Status: human-confirmed. Split: test. Queries: 45.
 

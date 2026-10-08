@@ -109,7 +109,7 @@ def evaluate(engine, dataset, output: Path, split="test", repeats=3, allow_draft
         writer = csv.DictWriter(handle, fieldnames=list(flat[0]))
         writer.writeheader()
         writer.writerows(flat)
-    text = f"# repoMap Evaluation\n\nStatus: {report['status']}. Split: {split}. Queries: {len(rows) // 4}.\n\n{report['conditions']}\n\n"
+    text = f"# RepoMap Evaluation\n\nStatus: {report['status']}. Split: {split}. Queries: {len(rows) // 4}.\n\n{report['conditions']}\n\n"
     text += "| Strategy | Recall@5 | Recall@10 | Recall@20 | MRR@10 | p50 ms | p95 ms |\n|---|---:|---:|---:|---:|---:|---:|\n"
     for strategy, values in summary.items():
         text += "| " + strategy + " | " + " | ".join(f"{v:.4f}" for v in values.values()) + " |\n"

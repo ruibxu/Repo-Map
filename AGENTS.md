@@ -1,4 +1,4 @@
-# repoMap Agent Guidelines
+# RepoMap Agent Guidelines
 
 ## Applicability and Current Status
 
@@ -12,7 +12,7 @@ Use English for all project documentation and code, including AGENTS.md, README 
 
 ## Project Goals and Scope
 
-repoMap is a local, single-user code search and repository intelligence research MVP. It combines AST analysis and retrieval to locate functionality, find definitions and references, explore dependencies, and reproducibly benchmark retrieval strategies.
+RepoMap is a local, single-user code search and repository intelligence research MVP. It combines AST analysis and retrieval to locate functionality, find definitions and references, explore dependencies, and reproducibly benchmark retrieval strategies.
 
 - Support public GitHub repositories and local Git directories, with management of multiple repositories.
 - Restrict each query to one repository and one published index snapshot.

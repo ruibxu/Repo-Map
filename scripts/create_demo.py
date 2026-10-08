@@ -25,7 +25,7 @@ def login_route(username, password):
     return authenticate(username, password)
 ''', encoding="utf-8")
         subprocess.run(["git", "-C", str(root), "add", "."], check=True)
-        subprocess.run(["git", "-C", str(root), "-c", "user.name=repoMap Demo", "-c", "user.email=demo@example.invalid", "commit", "-m", "Add demo authentication flow"], check=True, capture_output=True)
+        subprocess.run(["git", "-C", str(root), "-c", "user.name=RepoMap Demo", "-c", "user.email=demo@example.invalid", "commit", "-m", "Add demo authentication flow"], check=True, capture_output=True)
     catalog = RepositoryCatalog(Path(".repomap"))
     repository = catalog.import_repository("local", str(root))
     store = IndexStore(catalog)

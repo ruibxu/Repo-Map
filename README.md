@@ -1,8 +1,8 @@
-# repoMap
+# RepoMap
 
 **Find where a feature is implemented, inspect its definitions and references, and follow the code that connects it.**
 
-repoMap is a local, single-user code search and repository intelligence research MVP. It combines Tree-sitter syntax analysis with keyword and semantic retrieval. For questions such as “Where is authentication implemented?”, it retrieves relevant source code and can optionally send a bounded set of evidence to a Chat Completions-compatible LLM for a cited answer.
+RepoMap is a local, single-user code search and repository intelligence research MVP. It combines Tree-sitter syntax analysis with keyword and semantic retrieval. For questions such as “Where is authentication implemented?”, it retrieves relevant source code and can optionally send a bounded set of evidence to a Chat Completions-compatible LLM for a cited answer.
 
 Search, indexing, embeddings, and storage run locally. LLM credentials are optional. Multiple repositories can be managed, but each query targets one repository and one published snapshot.
 
@@ -324,6 +324,12 @@ The prior complete verification ran 49 tests including the opt-in real-model tes
 
 Follow [AGENTS.md](AGENTS.md) for project constraints. Add meaningful tests for behavior changes, especially source ranges, nested scopes, aliases/re-exports, ambiguity, syntax-error fallback, file changes, cache reuse, failure recovery, and snapshot isolation. Core dependencies and frontend dependencies are pinned in `requirements-lock.txt`, `pyproject.toml`, and `frontend/package-lock.json`. Documentation must distinguish implementation, verification, and planned work.
 
+### Continuous integration
+
+[GitHub Actions](.github/workflows/ci.yml) runs backend tests on Python 3.10 and the frontend TypeScript/production build on Node.js 22 for pushes and pull requests. It installs locked dependencies, checks Python dependency consistency, and uses read-only repository permissions.
+
+Normal CI runs skip the opt-in real-model test and use deterministic test encoders. A manual workflow run can enable `real_model` to download the pinned MiniLM revision and run that integration test. LLM credentials and the full benchmark are not required for CI. Hosted-runner results appear in the repository's Actions tab; local verification is separate from a successful hosted run.
+
 ## Troubleshooting and limitations
 
 | Symptom | What to check |
@@ -344,3 +350,7 @@ Follow [AGENTS.md](AGENTS.md) for project constraints. Add meaningful tests for 
 GitHub cloning is synchronous with a 120-second Git-operation timeout; failed clone directories may remain in ignored local storage without a catalog entry. Imports do not automatically fetch later upstream commits. Local registration leaves the working tree unchanged and records HEAD; subsequent snapshots capture their own HEAD/content identity.
 
 The MVP excludes private GitHub repositories, multi-user authorization, cross-repository search, live file watching, complete type inference, external task queues, additional vector backends, and LLM rerankers/query rewriting. There is no application authentication: use the documented localhost bindings. Large-repository indexing and retrieval remain research measurements rather than production performance guarantees.
+
+## License
+
+RepoMap is licensed under the [MIT License](LICENSE). Third-party dependencies, embedding models, and indexed repositories retain their own licenses.
